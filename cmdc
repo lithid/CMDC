@@ -1972,12 +1972,15 @@ class Setup():
 
 		if not os.path.exists('%s/.local/share/applications' % Globals.myHOME):
 			os.mkdir('%s/.local/share/applications' % Globals.myHOME)
-		for lines in fileinput.FileInput("desktop/cmdc.desktop", inplace=1):
-			print lines
-			if "Exec=" in lines:
-				lines.replace("Exec=","Exec=%s/cmdc" % Globals.myCONF_DIR)
-			if "Icon=" in lines:
-				lines.replace("Icon=","Icon=%s" % Globals.myICON)
+
+		for line in fileinput.FileInput("desktop/cmdc.desktop",inplace=1):
+			line = line.strip()
+			if line.startswith("Exec"):
+				print "Exec=%s/cmdc" % Globals.myCONF_DIR
+			elif line.startswith("Icon"):
+				print "Icon=%s" % Globals.myICON
+			else:
+				print line
 
 		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
 		shutil.move('cmdc', Globals.myCONF_DIR)
