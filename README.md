@@ -7,8 +7,8 @@ This program is standalone and can be ran on any linux operating system with pyt
 
 Make sure you have the following dependancies installed
 
-     sudo apt-get install curl python python-gtk2 python-vte
+    sudo apt-get install curl python python-gtk2 python-vte
 
 Just run this command to run it
 
-     python <(curl -s https://raw.github.com/lithid/CMDC/master/cmdc)
+    python <(curl -s https://raw.github.com/lithid/CMDC/master/cmdc)
