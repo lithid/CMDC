@@ -20,6 +20,7 @@ import ConfigParser
 import commands
 import zipfile
 import shutil
+import fileinput
 
 MAIN_VBOX = gtk.VBox(False, 0)
 toptable = gtk.Table(1, 3, False)
@@ -1971,6 +1972,13 @@ class Setup():
 
 		if not os.path.exists('%s/.local/share/applications' % Globals.myHOME):
 			os.mkdir('%s/.local/share/applications' % Globals.myHOME)
+		for lines in fileinput.FileInput("desktop/cmdc.desktop", inplace=1):
+			print lines
+			if "Exec=" in lines:
+				lines.replace("Exec=","Exec=%s/cmdc" % Globals.myCONF_DIR)
+			if "Icon=" in lines:
+				lines.replace("Icon=","Icon=%s" % Globals.myICON)
+
 		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
 		shutil.move('cmdc', Globals.myCONF_DIR)
 		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
