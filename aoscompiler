@@ -1,0 +1,2008 @@
+#!/usr/bin/env python2
+
+######################################################################
+# Python imports
+######################################################################
+import pygtk
+pygtk.require('2.0')
+
+import gtk
+import os
+import platform
+import sys
+import time
+import webbrowser
+import subprocess
+import vte
+import urllib
+import urllib2
+import ConfigParser
+import commands
+import zipfile
+import shutil
+
+MAIN_VBOX = gtk.VBox(False, 0)
+toptable = gtk.Table(1, 3, False)
+tableB = gtk.Table(1, 2, False)
+optFrame = gtk.Frame()
+
+class Tools():
+
+	def processor(self):
+		count = 0
+		for line in open('/proc/cpuinfo', 'r'):
+			if line.startswith('processor'):
+				count += 1
+		return count+1
+
+	def UnzipFile(self, zipurl, myfile, mydir):
+		current = os.getcwd()
+		os.chdir(mydir)
+		urllib.urlretrieve(zipurl, myfile)
+		zfile = zipfile.ZipFile(myfile)
+		for name in zfile.namelist():
+			(dirname, filename) = os.path.split(name)
+			print dirname
+			if not os.path.exists(dirname):
+				os.mkdir(dirname)
+
+			zfile.extract(name)
+
+		zfile.close()
+		os.remove(myfile)
+		os.chdir(current)
+
+	def custom_list_file(self, dirpath, filename):
+		RFILES = []
+		for path, dirs, files in os.walk(dirpath, followlinks=True):
+			if files:
+				for file in files:
+					p=os.path.join(path,file)
+					if os.path.isfile(p) and not os.path.islink(p):
+						p = p.split("/")
+						p = p[-1]
+						if p == filename:
+							RFILES.append(os.path.join(path,p))
+
+		if not RFILES:
+			return None
+		else:
+			return RFILES
+
+	def custom_list_dir(self, dirpath, dirname):
+		RDIRS = []
+		for path, dirs, files in os.walk(dirpath, followlinks=True):
+			if dirs:
+				for dir in dirs:
+						d = dir.split("/")
+						d = d[-1]
+						if d == dirname:
+							RDIRS.append(path)
+
+		if not RDIRS:
+			return None
+		else:
+			return RDIRS
+
+	def which(self, program):
+		def is_exe(fpath):
+			return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+		fpath, fname = os.path.split(program)
+		if fpath:
+			if is_exe(program):
+				return program
+		else:
+			for path in os.environ["PATH"].split(os.pathsep):
+				exe_file = os.path.join(path, program)
+				if is_exe(exe_file):
+					return exe_file
+
+		return None
+
+class Dialogs():
+
+	def CDial(self, dialog_type, title, message):
+		dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL, type=dialog_type, buttons=gtk.BUTTONS_OK)
+		dialog.set_markup(title)
+		dialog.format_secondary_markup(message)
+		dialog.run()
+		dialog.destroy()
+		return True
+
+	def QDial(self, title, message):
+		dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL, type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO)
+		dialog.set_markup(title)
+		dialog.format_secondary_markup(message)
+		response = dialog.run()
+		dialog.destroy()
+
+		if response == gtk.RESPONSE_YES:
+			return True
+		else:
+			return False
+
+class Globals():
+
+	# Local config junk
+	myHOME = (os.environ['HOME'])
+	myGIT_CONF = ('%s/.gitconfig') % (myHOME)
+	myCONF_DIR = ('%s/.aoscompiler') % (myHOME)
+	myCONF = ('%s/aoscompiler.conf') % (myCONF_DIR)
+	myCONFIRM = ('%s/ask.confim') % (myCONF_DIR)
+	myREPO_CONF = ('%s/repo_list') % (myCONF_DIR)
+	myDEF_REPO_PATH = ('%s/build') % (myCONF_DIR)
+	AskConfirm = ('%s/ask.confim') % (myCONF_DIR)
+
+	# Resources
+	myMainTitle = ('CyanogenMod Center')
+	myIMGS = ('%s/images') % (myCONF_DIR)
+	myICON = ('%s/aosc-icon.png') % (myIMGS)
+	myTermWall = ('%s/termwall.jpg') % (myIMGS)
+	myTHEME = ('%s/theme/') % (myIMGS)
+	SyncImg = ('%s/sync.png') % (myIMGS)
+	CompileImg = ('%s/compile.png') % (myIMGS)
+	DeviceImg = ('%s/device.png') % (myIMGS)
+	ClobImg = ('%s/clobber.png') % (myIMGS)
+	aoscData = ('https://raw.github.com/lithid/AOSC_Data/master')
+	aoscDataProjects = ('%s/projects') % (aoscData)
+	myTermFont = ('Ubuntu Mono 9')
+	myFileList = [myICON, myTermWall, SyncImg, CompileImg, DeviceImg, ClobImg]
+
+	# Strings
+	StrUserConfirm = '**** User Confirmation ****'
+	TargetOut = '%s/out/target/product/%s'
+
+	# Needed web urls
+	myFORUM_URL = ('http://forum.xda-developers.com/showthread.php?t=1415661')
+	myDONATE = ('http://forum.xda-developers.com/donatetome.php?u=2709018')
+	myREPO_TOOL_URL = ('https://dl-ssl.google.com/dl/googlesource/git-repo/repo')
+	myUpdateUrl = ('https://github.com/lithid/AOSCompiler/archive/master.zip')
+
+	# For dialogs
+	DialogError = gtk.MESSAGE_ERROR
+
+	# Keys to reading config
+	KeyRepoPath = 'repo_path'
+	KeyDevice = 'device'
+	KeyWinX = 'win_x'
+	KeyWinY = 'win_y'
+	KeyTermToggle = 'term_toggle'
+
+	PROCESSORS = Tools().processor()
+
+	# Device lists
+	dl_version = None
+	dl_url = None
+	dl_device = None
+	mylist = []
+
+	# Info stuff
+	AskConfirmInfo = ('<small>By no means what so ever is this software responsible for what you do to your phone. '
+			'You are taking the risks, you are choosing to this to your phone. By proceeding you are aware, you are warned. No crying or moaning. This software '
+			'was tested by human beings, not cybogs from your mothers closet. Please keep this in mind when something breaks, or hangs.  If you have an issue '
+			'with this software, please let me know.\n\nBy clicking this ok button, you have given me your soul.\n\nPlay safe.\n\n</small> '
+			'<small><small><b>Note:\n- </b><i>This will not proceed unless you agree.</i></small>\n'
+			'<small><b>-</b><i> Cyanogenmod doesn\'t consider source builds offical, please keep this in mind if you plan on bug reporting.</i></small></small>\n\n'
+			'Any bugs? Please report them:\n\nhttp://github.com/lithid/AOSCompiler/issues\n')
+
+	about_info = ('The CyanogenMod Center was written, not to dismiss the need'
+			'to learn the android system, but to release the need consistly remember menial tasks.\n\n'
+			'Please intend to learn the system, contribute back to any upstream.\n\n'
+			'Happy compiling,\n\nCode: Jeremie Long\n\n'
+			'Any bugs? Please report them\n'
+			'http://github.com/lithid/Cmcompiler/issues\n')
+
+	AdbList = (['All', 'Verbose', 'Debug', 'Info', 'Warning', 'Error', 'Fatal'])
+	AdbTooltipList = ['Show all log output', 'Only show verbose, low priority output', 'Only show debug output', 'Show information output', 'Show app and package warnings', 
+			'Show application and package errors', 'Show critial or fatal errors']
+	ToolsComboList = ['View config', 'Repo path', 'Remove config', 'Add device', 'Open rom folder', 'Install packages', 'Install repo', 'Change background', 'About', 'Remove Repo']
+	LinkList = ["Gmail", "Twitter", "GooglePlus", "Xda", "Youtube", "Gallery"]
+
+	TermFrameTable = gtk.Table(1, 3, False)
+	StatusFrame = gtk.Frame()
+	MAIN_WIN = gtk.Window(gtk.WINDOW_TOPLEVEL)
+	DEV_BTN = gtk.Button()
+	runBtn = gtk.Button()
+	branchBtn = gtk.Button()
+	aboutRomBtn = gtk.Button()
+	resetBtn = gtk.Button()
+	KEY_BIND_INFO = gtk.Label()
+	runLab = gtk.Label()
+	romLab = gtk.Label()
+	LinkContact = gtk.Label()
+	aboutRomLab = gtk.Label()
+	branchLab = gtk.Label()
+	toolsLab = gtk.Label()
+	clobberLab = gtk.Label()
+	deviceLab = gtk.Label()
+	syncjobsLab = gtk.Label()
+	makeLab = gtk.Label()
+	compileLab = gtk.Label()
+	syncLab = gtk.Label()
+	build_appLab = gtk.Label()
+	buildFrameLab = gtk.Label()
+	runFrameLab = gtk.Label()
+	toggleTermLab = gtk.Label()
+	toggleAdbLab = gtk.Label()
+	toggleBashLab = gtk.Label()
+	resetLab = gtk.Label()
+	contactFrameLab = gtk.Label()
+	statusFrameLab = gtk.Label()
+	statusLab = gtk.Label()
+	aoscTitleLab = gtk.Label()
+	checkCompile = gtk.CheckButton()
+	checkSync = gtk.CheckButton()
+	checkClobber = gtk.CheckButton()
+	checkTermToggle = gtk.CheckButton()
+	checkAdbToggle = gtk.CheckButton()
+	checkBashToggle = gtk.CheckButton()
+	packageEntryBox = gtk.Entry()
+	TERM = vte.Terminal()
+	TERM.set_font_from_string(myTermFont)
+	TERM.set_background_saturation(1.0)
+
+class CyanogenMod():
+
+	URL = "https://github.com/CyanogenMod"
+	RAW_URL = "https://raw.github.com/CyanogenMod"
+	INIT_URL = "https://github.com/CyanogenMod/android.git"
+	JELLYBEAN_URL = "%s/android_vendor_cm/jellybean/jenkins-build-targets" % RAW_URL
+	ICS_URL = "%s/android_vendor_cm/ics/jenkins-build-targets" % RAW_URL
+	GINGERBREAD_URL = "%s/android_vendor_cyanogen/gingerbread/vendorsetup.sh" % RAW_URL
+	IMG_FILE = ('%s/cm/screeny-list') % (Globals.aoscDataProjects)
+
+	BranchList = ["gingerbread", "ics", "jellybean"]
+
+	AboutDesc = "This is cyanogenmod, this is subject to changes."
+
+	# CyanogenMod Images
+	Images = []
+	try:
+		filehandle = urllib.urlopen(IMG_FILE)
+	except IOError:
+		Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't read file!", "Can't read the file to setup devices!\n\nPlease check you internet connections and try again!")
+
+	for line in filehandle:
+		l = line.strip()
+		Images.append(l)
+
+	ScreenList = []
+	for i in Images:
+		ScreenList.append("%s/cm/%s" % (Globals.aoscDataProjects, i))
+
+	def getBranch(self, arg):
+		CM = CyanogenMod()
+		b = Parser().read("branch").strip()
+		BR = None
+		if arg == "init":
+			BR = CM.INIT_URL
+		else:
+			if b == "gingerbread":
+				BR = CM.GINGERBREAD_URL
+			elif b == "ics":
+				BR = CM.ICS_URL
+			elif b == "jellybean":
+				BR = CM.JELLYBEAN_URL
+			else:
+				pass
+
+		return BR
+
+	def Compile(self):
+		r = Parser().read("repo_path")
+		d = Parser().read("device")
+		b = Parser().read("branch")
+		MAKE = Parser().read("make_jobs")
+		os.chdir(r)
+		m = Utils().getManu(d)
+		Globals.TERM.feed_child('clear\n')
+		if m == None:
+			Globals.TERM.feed_child('python build/tools/roomservice.py cm_%s\n' % d)
+			Dialogs().CDial(gtk.MESSAGE_INFO, "<small>Running roomservice</small>", "<small>Roomservice is running right now, you will have to run, \"<b>Compile</b>\" again after this is done downloading your kernel and device dependancies.</small>")
+		else:
+			Parser().write("manuf", m)
+			Globals.TERM.feed_child('clear\n')
+			if not os.path.exists("%s/vendor/%s" % (r, m)) and b is not "jellybean":
+				if Utils().is_adb_running() == True:
+					Globals.TERM.feed_child("cd %s/device/%s/%s/\n" % (r, m, d))
+					Globals.TERM.feed_child('clear\n')
+					Globals.TERM.feed_child('./extract-files.sh\n')
+					Globals.TERM.feed_child("cd %s\n" % r)
+				else:
+					Dialogs().CDial(gtk.MESSAGE_ERROR, "Adb isn't running", "Need adb to setup vendor files.\n\nIs this something you are going to do yourself?\n\nPlease try again.")
+					Globals.TERM.set_background_saturation(1.0)
+					Globals.TERM.feed_child('clear\n')
+					return
+
+			if not os.path.exists("%s/cacheran" % Globals.myCONF_DIR) and b is not "gingerbread":
+				os.chdir(r)
+				file("%s/cacheran" % Globals.myCONF_DIR, 'w').close()
+				Globals.TERM.feed_child('bash prebuilt/linux-x86/ccache/ccache -M 50G\n')
+
+			if b is not "gingerbread":
+				Globals.TERM.feed_child('bash vendor/cm/get-prebuilts\n')
+			else:
+				Globals.TERM.feed_child('bash vendor/cyanogen/get-rommanager\n')
+
+			Globals.TERM.feed_child('source build/envsetup.sh\n')
+
+		if d is "gingerbread":
+			Globals.TERM.feed_child("lunch cyanogen_%s-eng\n" % d)
+		else:
+			Globals.TERM.feed_child("lunch cm_%s-userdebug\n" % d)
+		Globals.TERM.feed_child("time make -j%s otapackage\n" % MAKE)
+
+class FileChooser():
+	def getFolder(self):
+		# Define type of dialog
+		TYPE = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
+
+		# Get response from the dialog
+		FOLDER = self.runDialog("Choose Folder...", TYPE)
+
+		# Only return a path if path selected exists.
+		if FOLDER:
+			if os.path.exists(FOLDER):
+				return FOLDER
+			else:
+				return None
+
+	def getFile(self):
+		# Define type of dialog
+		TYPE = gtk.FILE_CHOOSER_ACTION_OPEN
+
+		# Get response from the dialog
+		FILE = self.runDialog("Choose File...", TYPE)
+
+		# Only return a path if file selected exists.
+		if FILE:
+			if os.path.exists(FILE):
+				return FILE
+			else:
+				return None
+
+	def runDialog(self, name, arg):
+		direct = gtk.FileChooserDialog(name, action=arg, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		RESPONSE = direct.run()
+		MEH = direct.get_filename()
+		direct.destroy()
+		if RESPONSE == gtk.RESPONSE_ACCEPT:
+			return MEH
+		return None
+
+class Utils():
+
+	CONFIG_DIR = Globals.myCONF_DIR
+	TOOLS_COMBO_LIST = Globals.ToolsComboList
+	KEY_DEVICE = Globals.KeyDevice
+	KEY_REPO_PATH = Globals.KeyRepoPath
+	KEY_TERM_TOGGLE = Globals.KeyTermToggle
+	KEY_WIN_X = Globals.KeyWinX
+	KEY_WIN_Y = Globals.KeyWinY
+	STR_USER_CONFIRM = Globals.StrUserConfirm
+	ASK_CONFIRM = Globals.AskConfirm
+	ASK_CONFIRM_INFO = Globals.AskConfirmInfo
+	LINK_LIST = Globals.LinkList
+	TARGET_OUT = Globals.TargetOut
+	DIALOG_ERROR = Globals.DialogError
+	TARGET_OUT = Globals.TargetOut
+	TERM_FRAME_TABLE = Globals.TermFrameTable
+	STATUS_FRAME = Globals.StatusFrame
+
+	def is_adb_running(self):
+		running = False
+		cmd = commands.getoutput("adb devices")
+		x = cmd.split(" ")
+		print x
+		for i in x:
+			if "device\n" in i:
+				running = True
+
+		return running
+
+	def ViewConfig(self):
+		def btn(obj):
+			Globals().CDial(gtk.MESSAGE_INFO, "Configuration removed", "Your configuration has been removed. Please restart the application to re-configure.")
+
+		dialog = gtk.Dialog("CMCompiler", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(600, 400)
+		dialog.set_resizable(False)
+		sw = gtk.ScrolledWindow()
+		sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		sw.show()
+		table = gtk.Table(1, 1, False)
+		table.show()
+		sw.add_with_viewport(table)
+		frame = gtk.Frame()
+		frame.add(sw)
+		frame_label = gtk.Label()
+		frame_label.set_markup("Configuration:")
+		frame_label.show()
+		frame.set_label_widget(frame_label)
+		frame.set_border_width(15)
+		frame.show()
+		dialog.vbox.pack_start(frame, True, True, 0)
+
+		try:
+			f = open(Globals.myCONF)
+			count = 0
+			for line in f:
+				if "CMCompiler" in line:
+					pass
+				elif line == '\n':
+					pass
+				else:
+					count += 1
+					i = line.split("=")
+					x = i[0]
+					y = i[1]
+					label = gtk.Label()
+					label.set_markup("<b>%s:</b> <small>%s</small>" % (x, y))
+					label.show()
+					label.set_alignment(xalign=0, yalign=0)
+					label.set_padding(5, 5)
+					table.attach(label, 0, 1, count-1, count)
+		except IOError:
+			Dialogs().CDial(gtk.MESSAGE_ERROR, "Failed reading configuration", "Can't currently read the config file.\n\nIs it open somewhere else?\n\nPlease try again.")
+
+		dialog.run()
+		dialog.destroy()
+
+	def getManu(self, device):
+		s = None
+		FILE = "BoardConfig.mk"
+		if FILE is not None:
+			paths = glob("device/*/*/%s" % FILE)
+		else:
+			paths = None
+
+		if paths is not None:
+			for x in paths:
+				if device in x:
+					i = x.split("/")
+					i = i[1]
+					s = i
+
+		return s
+
+	def choose_branch(self, obj):
+		branchList = []
+		CM = CyanogenMod()
+		for x in CM.BranchList:
+			branchList.append(x)
+
+		def callback_branch(widget, data=None):
+			Parser().write("branch", data)
+
+		dialog = gtk.Dialog("Choose branch", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(260, 200)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+		table.set_row_spacings(0)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		device = gtk.RadioButton(None, None)
+
+		button_count = 0
+		for radio in branchList:
+
+			button_count += 1
+			button = gtk.RadioButton(group=device, label="%s" % (radio))
+			button.connect("toggled", callback_branch, radio)
+			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.FILL)
+			button.show()
+
+		dialog.run()
+		dialog.destroy()
+		Update().main(None)
+
+	def aboutRom(self, obj):
+		CM = CyanogenMod()
+		ImageList = CM.ScreenList
+		Desc = CM.AboutDesc
+
+		dialog = gtk.Dialog("About: Cyanogenmod", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_resizable(False)
+
+		table = gtk.Table(2, 1, False)
+		table.show()
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		scroll.add_with_viewport(table)
+		scroll.set_size_request(425, 475)
+		scroll.show()
+		frame = gtk.Frame()
+		frame.add(scroll)
+		frame.show()
+		dialog.vbox.pack_start(frame, True, True, 0)
+
+		count = 0
+		for i in ImageList:
+			count+=1
+			image = gtk.Image()
+			image.show()
+			try:
+				imgurl = urllib2.urlopen(i)
+			except:
+				Dialogs().CDial(gtk.MESSAGE_ERROR, "Failed reading url", "Can't read\n\n%s\n\nMaybe something is wrong with the server, or the internet connection.\n\nPlease try again later." % i)
+				return
+			loader = gtk.gdk.PixbufLoader()
+			loader.write(imgurl.read())
+			loader.close()
+			image.set_from_pixbuf(loader.get_pixbuf())
+			table.attach(image, count-1, count, 0, 1, xpadding=20, ypadding=10)
+
+		label = gtk.Label()
+		label.set_markup(Desc)
+		label.show()
+		label.set_line_wrap(True)
+		DFrame = gtk.Frame()
+		DFrame.add(label)
+		DFrame.set_label("Cyanogenmod")
+		DFrame.set_border_width(10)
+		DFrame.show()
+		dialog.vbox.pack_start(DFrame, True, True, 5)
+
+		dialog.run()
+		dialog.destroy()
+
+	def Devices(self):
+		VERBOSE = Parser().read("verbose")
+
+		def callback_device(widget, data=None):
+			Parser().write("device", data)
+
+		BR = RepoHelper().getBranchUrl("raw")
+		if BR == None:
+			return
+
+		dialog = gtk.Dialog("Choose device for Cyanogenmod", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(260, 400)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+		table.set_row_spacings(5)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		device = gtk.RadioButton(None, None)
+
+		try:
+			filehandle = urllib.urlopen(BR)
+		except IOError:
+			Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't read file!", "Can't read the file to setup devices!\n\nPlease check you internet connections and try again!")
+
+		button_count = 0
+		if VERBOSE == True:
+			print "##########"
+			print "# Reading URL: %s" % BR
+		for lines in filehandle.readlines():
+
+			if not "#" in lines:
+				line = lines.strip()
+				button_count += 1
+				button = "button%s" % (button_count)
+
+				try:
+					if line:
+						x = line.split(" ")
+						radio = x[1]
+					else:
+						break
+				except:
+					radio = line.strip()
+
+				if VERBOSE == True:
+					print "# Reading line: %s" % line
+					print "##########"
+					print radio
+				x = radio.split("-")
+				if VERBOSE == True:
+					print x
+				radio = x[0]
+				x = radio.split("_")
+				if VERBOSE == True:
+					print x
+				number = len(x)
+				if VERBOSE == True:
+					print number
+				if number is not 2:
+					f = x[1]
+					b = x[2]
+					radio = "%s_%s" % (f, b)
+					if VERBOSE == True:
+						print radio
+				else:
+					radio = x[1]
+					if VERBOSE == True:
+						print radio
+				if VERBOSE == True:
+					print "##########"
+
+				button = gtk.RadioButton(group=device, label="%s" % (radio))
+				button.connect("toggled", callback_device, "%s" % (radio))
+				table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+				button.show()
+
+		filehandle.close()
+
+		dialog.run()
+		dialog.destroy()
+
+	def ResetTerm(self):
+		Globals.checkAdbToggle.set_active(False)
+		Globals.TERM.set_background_saturation(1.0)
+		Globals.TERM.fork_command('clear')
+		Update().main(None)
+
+	def choose_repo_path(self):
+		RESPONSE = FileChooser().getFolder()
+		if RESPONSE is not None:
+			Parser().write("repo_path", RESPONSE)
+			Update().main(None)
+
+	def cust_background_dialog(self):
+		IMG = FileChooser().getFile()
+		if IMG is not None:
+			import imghdr as im
+			test = im.what(IMG)
+			if test:
+				Parser().write("background", IMG)
+				Update().background()
+			else:
+				Dialogs().CDial(gtk.MESSAGE_ERROR, "File not an image!", "Please use images for backgrounds!\n\nFile:\n%s" % IMG)
+
+		return
+
+	def run_custom_device(self):
+		title = "Setup custom device"
+		message = "Please setup your device here:"
+		dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK)
+		dialog.set_markup(title)
+		dialog.format_secondary_markup(message)
+		table = gtk.Table(8, 1, False)
+		dialog.vbox.pack_start(table)
+		label = gtk.Label()
+		label.set_markup("Device name:")
+		label.show()
+		entry = gtk.Entry()
+		entry.show()
+		label1 = gtk.Label()
+		label1.set_markup("Device manufacturer:")
+		label1.show()
+		entry1 = gtk.Entry()
+		entry1.show()
+		label2 = gtk.Label()
+		label2.set_markup("Device tree url:")
+		label2.show()
+		entry2 = gtk.Entry()
+		entry2.show()
+		label3 = gtk.Label()
+		label3.set_markup("Device tree branch:")
+		label3.show()
+		entry3 = gtk.Entry()
+		entry3.show()
+		table.attach(label, 0, 1, 0, 1, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(entry, 0, 1, 1, 2, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(label1, 0, 1, 2, 3, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(entry1, 0, 1, 3, 4, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(label2, 0, 1, 4, 5, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(entry2, 0, 1, 5, 6, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(label3, 0, 1, 6, 7, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.attach(entry3, 0, 1, 7, 8, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+		table.show()
+		q = dialog.run()
+		if q == gtk.RESPONSE_OK:
+			n = entry.get_text()
+			m = entry1.get_text()
+			u = entry2.get_text()
+			b = entry3.get_text()
+			if not n or m or u or b:
+				return
+			r = Parser().read("repo_path")
+			os.chdir(r)
+			manu_path = "%s/device/%s" % (r,m)
+			if not os.path.exists(manu_path):
+				os.mkdir(manu_path)
+			if os.path.exists("%s/%s" % (manu_path, n)):
+				shutil.rmtree("%s/%s" % (manu_path, n))
+			os.chdir(manu_path)
+			Globals.TERM.set_background_saturation(0.3)
+			Globals.TERM.fork_command('bash')
+			Globals.TERM.feed_child('git clone %s -b %s %s\n' % (u,b,n))
+		else:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Skipping this", "No changes have been made!")
+		dialog.destroy()
+
+	def choose_adb(self):
+		VERBOSE = Parser().read("verbose")
+		List = []
+		global ADB_TYPE
+		ADB_TYPE = None
+		ADB_LIST = Globals.AdbList
+		TIP_LIST = Globals.AdbTooltipList
+		for x in ADB_LIST:
+			List.append(x)
+
+		def callback_branch(widget, data=None):
+			global ADB_TYPE
+			ADB_TYPE = data
+			if VERBOSE == True:
+				print "%s was toggled %s" % (data, ("OFF", "ON")[widget.get_active()])
+
+		dialog = gtk.Dialog("Choose adb type", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(225, 233)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+		table.set_row_spacings(0)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		device = gtk.RadioButton(None, None)
+
+		button_count = 0
+		for radio in List:
+			button_count += 1
+			tooltip = gtk.Tooltips()
+			button = gtk.RadioButton(group=device, label="%s" % (radio))
+			button.connect("toggled", callback_branch, radio)
+			tooltip.set_tip(button, TIP_LIST[button_count-1])
+			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.FILL)
+			button.show()
+
+		r = dialog.run()
+		dialog.destroy()
+
+		if r == gtk.RESPONSE_ACCEPT:
+			if ADB_TYPE:
+				return (ADB_TYPE[0], ADB_TYPE)
+			else:
+				return None
+		else:
+			return None
+
+	def change_background(self):
+		def chbutton(widget, data=None):
+			global WHICH
+			WHICH = data
+
+		BLIST = ["Custom", "Default"]
+		global WHICH
+		WHICH = None
+
+		dialog = gtk.Dialog("Change background", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(225, 233)
+		dialog.set_resizable(False)
+
+		hbox = gtk.HBox(False, 10)
+		hbox.show()
+
+		TYPE = gtk.RadioButton(None, None)
+
+		for radio in BLIST:
+			frame = gtk.Frame()
+			frame.set_label(radio)
+			frame.show()
+			button = gtk.RadioButton(group=TYPE, label="%s" % (radio))
+			button.connect("toggled", chbutton, radio)
+			frame.add(button)
+			hbox.add(frame)
+			button.show()
+
+		dialog.vbox.pack_start(hbox, True, True, 0)
+
+		r = dialog.run()
+		dialog.destroy()
+
+		if r == gtk.RESPONSE_ACCEPT:
+			if WHICH is "Default":
+				Parser().write("background", None)
+				Update().background()
+			elif WHICH is "Custom":
+				self.cust_background_dialog()
+			else:
+				return None
+		else:
+			return None
+
+	def press_link_button(self, obj, event, arg):
+		T = True
+		if arg == "Gmail":
+			url = "mailto:mrlithid@gmail.com"
+		elif arg == "Twitter":
+			url = "http://twitter.com/lithid"
+		elif arg == "GooglePlus":
+			url = "https://plus.google.com/u/0/103024643047948973176/posts"
+		elif arg == "Xda":
+			url = "http://forum.xda-developers.com/showthread.php?t=1789190"
+		elif arg == "Youtube":
+			url = "http://www.youtube.com/user/MrLithid"
+		elif arg == "Gallery":
+			url = "mailto:mrlithid@gmail.com"
+		else:
+			T = None
+			url = None
+
+		if T is not None:
+			subprocess.call(('xdg-open', url))
+		else:
+			Dialogs().CDial(DIALOG_ERROR, "No Url found!", "There is something wrong with the app. Report this. Returned: %s" % arg)
+
+	def openBuildFolder(self):
+		r = Parser().read(self.KEY_REPO_PATH)
+		d = Parser().read(self.KEY_DEVICE)
+		t = self.TARGET_OUT % (r, d)
+		if os.path.exists(t):
+			subprocess.call(('xdg-open', t))
+		else:
+			Dialogs().CDial(self.DIALOG_ERROR, 'No out folder', 'Need to compile before you can do this silly!')
+
+	def chk_config(self):
+		if not os.path.exists(self.CONFIG_DIR):
+			os.makedirs(self.CONFIG_DIR)
+
+	def get_askConfirm(self):
+		def askedClicked():
+			if not os.path.exists(self.ASK_CONFIRM):
+				file(self.ASK_CONFIRM, 'w').close()
+		q = Dialogs().QDial(self.STR_USER_CONFIRM, self.ASK_CONFIRM_INFO)
+		if q == True:
+			askedClicked()
+		else:
+			exit()
+
+	def run_vt_command(self, event):
+		i = Globals.packageEntryBox.get_text()
+		r = Parser().read(self.KEY_REPO_PATH)
+		d = Parser().read(self.KEY_DEVICE)
+		b = Parser().read('branch')
+		MAKE = Parser().read("make_jobs")
+		if not os.path.exists("%s/.repo" % r):
+			RepoHelper().run_no_repo_found()
+			return
+		os.chdir(r)
+		Globals.TERM.set_background_saturation(0.3)
+		Globals.TERM.fork_command('bash')
+		Globals.TERM.feed_child('clear\n')
+		Globals.TERM.feed_child('. build/envsetup.sh\n')
+		if b is not "gingerbread":
+			Globals.TERM.feed_child('lunch cm_%s-userdebug\n' % d)
+		else:
+			Globals.TERM.feed_child('lunch cm_%s-eng\n' % d)
+
+		Globals.TERM.feed_child('time make -j%s %s\n' % (MAKE, i))
+
+	def run_local_shell(self):
+		self.ResetTerm()
+		Update().main("Running bash shell")
+		Globals.TERM.set_background_saturation(0.3)
+		Globals.TERM.fork_command('bash')
+
+	def tools_combo_change(self, w):
+		value = int(w.get_active())
+		if value == 0:
+			self.ViewConfig()
+		elif value == 1:
+			self.choose_repo_path()
+		elif value == 2:
+			self.remove_config()
+		elif value == 3:
+			self.run_custom_device()
+		elif value == 4:
+			self.openBuildFolder()
+		elif value == 5:
+			InstallPackages().runInstall()
+		elif value == 6:
+			InstallPackages().repo()
+		elif value == 7:
+			self.change_background()
+		elif value == 8:
+			About().main()
+		elif value == 9:
+			self.remove_repo()
+		else:
+			pass
+
+	def remove_repo(self):
+		RMBUTTON = gtk.Button()
+		REPO_NAME = None
+		REPOS = Tools().custom_list_dir(Globals.myHOME, ".repo")
+		if REPOS is None:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "No repos configured.", "There are not repos configured. Please sync a repo first!")
+			return
+
+		def callback_radio(widget, data=None):
+			L = data.split("/")
+			L = L[-1]
+			RMBUTTON.set_label("Remove: %s" % L)
+			global REPO_NAME
+			REPO_NAME = data
+
+		def del_repo_paths(widget):
+			global REPO_NAME
+			REPO_NAME = str(REPO_NAME.strip())
+			if REPO_NAME is not "None":
+				q = Dialogs().QDial("Remove repos: %s?" % REPO_NAME, "Are you sure you want to remove:\n %s\n\nOnce this is done it can't be undone." % REPO_NAME)
+				if q is not True:
+					return
+			if REPO_NAME == "All":
+				for x in REPOS:
+					if os.path.isdir(x):
+						if Parser().read("repo_path") == x:
+							Parser().write("repo_path", Globals.myDEF_REPO_PATH)
+						shutil.rmtree(x)
+						dialog.destroy()
+						Update().main(None)
+			elif REPO_NAME == "None":
+				pass
+			else:
+				if os.path.isdir(REPO_NAME):
+					if Parser().read("repo_path") == REPO_NAME:
+						Parser().write("repo_path", Globals.myDEF_REPO_PATH)
+					shutil.rmtree(REPO_NAME)
+					dialog.destroy()
+					Update().main(None)
+
+		dialog = gtk.Dialog("Remove installed repos", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(500, 400)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		scroll.set_size_request(400, 325)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+		table.set_row_spacings(5)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		radiobtn = gtk.RadioButton(None, None)
+
+		button_count = 0
+		REPOS.append("All")
+		REPOS.append("None")
+		for radio in REPOS:
+			button_count+=1
+			button = gtk.RadioButton(group=radiobtn, label="%s" % (radio))
+			button.connect("toggled", callback_radio, "%s" % (radio))
+			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+			button.show()
+
+		RMBUTTON.set_label("Remove: None")
+		RMBUTTON.connect("clicked", del_repo_paths)
+		RMBUTTON.show()
+		dialog.vbox.pack_start(RMBUTTON, True, True, 0)
+
+		dialog.run()
+		dialog.destroy()
+
+	def compile_combo_change(self, w):
+		value = int(w.get_active_text())
+		Parser().write("make_jobs", value)
+		Update().main(None)
+
+	def sync_combo_change(self, w):
+		value = int(w.get_active_text())
+		Parser().write("sync_jobs", value)
+		Update().main(None)
+
+	def device_button(self, event):
+		self.Devices()
+		Update().main(None)
+
+	def run_button(self, event):
+		isit = None
+		r = Parser().read("repo_path")
+		os.chdir(r)
+		Globals.TERM.set_background_saturation(0.3)
+		Globals.TERM.fork_command('clear')
+		Globals.TERM.fork_command('bash')
+		if Globals.checkClobber.get_active() == True:
+			isit = True
+			if not os.path.exists("%s/.repo" % r):
+				RepoHelper().run_no_repo_found()
+				Globals.TERM.set_background_saturation(1.0)
+				Globals.TERM.fork_command('clear')
+				return
+				
+			Globals.TERM.feed_child('make clobber\n')
+
+		if Globals.checkSync.get_active() == True:
+			isit = True
+			C = Sync().run()
+			if C is False:
+				self.ResetTerm()
+
+		if Globals.checkCompile.get_active() == True:
+			isit = True
+			Compile().run()
+
+		if isit == None:
+			self.ResetTerm()
+
+	def remove_config(self):
+		q = Dialogs().QDial("Remove config?", "Are you sure you want to remove your current config?\n\nOnce this is done it can't be undone.")
+		if q == True:
+			os.remove(cmcconfig)
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Configuration removed", "Your configuration has been removed. Please restart the application to re-configure.")
+
+	def start_adb(self):
+		if Utils().is_adb_running() == True:
+			(x, y) = self.choose_adb()
+			if x is not None:
+				Update().main("Running adb for %ss" % y)
+				Globals.TERM.set_background_saturation(0.3)
+				Globals.TERM.fork_command('bash')
+				if x is "A":
+					Globals.TERM.feed_child("adb logcat\n")
+				else:
+					Globals.TERM.feed_child("adb logcat |grep \"%s/\"\n" % x)
+			else:
+				self.ResetTerm()
+		else:
+			Dialogs().CDial(self.DIALOG_ERROR, "Adb isn't running", "Need adb running to start, start it.\n\nPlease try again.")
+			self.ResetTerm()
+			return
+
+	def toggle_term_btn(self):
+		if Globals.checkTermToggle.get_active() == True:
+			Parser().write(KEY_TERM_TOGGLE, False)
+			Globals.checkTermToggle.set_active(False)
+		else:
+			Parser().write(KEY_TERM_TOGGLE, True)
+			Globals.checkTermToggle.set_active(True)
+
+		Update().widgets()
+
+	def reset_button(self, widget):
+		if Globals.checkBashToggle.get_active() == True:
+			Globals.checkBashToggle.set_active(False)
+		if Globals.checkAdbToggle.get_active() == True:
+			Globals.checkAdbToggle.set_active(False)
+		self.ResetTerm()
+
+	def checked_bash_toggle(self, widget):
+		if Globals.checkBashToggle.get_active() == True:
+			if Globals.checkTermToggle.get_active() == False:
+				Globals.checkTermToggle.set_active(True)
+				Parser().write(self.KEY_TERM_TOGGLE, True)
+				Update().widgets()
+
+			self.run_local_shell()
+		else:
+			self.ResetTerm()
+
+	def checked_adb_toggle(self, widget):
+		if Globals.checkAdbToggle.get_active() == True:
+			if Globals.checkTermToggle.get_active() == False:	
+				Globals.checkTermToggle.set_active(True)
+				Parser().write(self.KEY_TERM_TOGGLE, True)
+				Update().widgets()
+				self.start_adb()
+			else:
+				self.start_adb()
+		else:
+			self.ResetTerm()
+
+	def checked_term_toggle(self, widget):
+		if Globals.checkTermToggle.get_active() == True:
+			Parser().write(self.KEY_TERM_TOGGLE, True)
+		else:
+			Parser().write(self.KEY_TERM_TOGGLE, False)
+
+		Update().widgets()
+
+class Update():
+
+	KEY_TERM_TOGGLE = Globals.KeyTermToggle
+	TERM_FRAME_TABLE = Globals.TermFrameTable
+	STATUS_FRAME = Globals.StatusFrame
+
+	def background(self):
+		if Parser().read("background") is None:
+			IMG = Globals.myTermWall
+		else:
+			IMG = Parser().read("background")
+
+		Globals.TERM.set_background_image_file(IMG)
+
+	def main(self, status):
+		b = Parser().read("branch")
+		d = Parser().read("device")
+		p = Parser().read("repo_path")
+		r = "CyanogenMod Center"
+		if status == None:
+			stat = "Waiting for command..."
+		else:
+			stat = status
+		(x, y) = Globals.MAIN_WIN.get_position()
+		here = int(x)
+		there = int(y)
+		Globals.branchLab.set_markup("<small>Branch: <b>%s</b></small>" % b)
+		Globals.LinkContact.set_markup("<small>Contact</small>")
+		Globals.runLab.set_markup("<small>Run</small>")
+		Globals.aboutRomLab.set_markup("<small>About</small>")
+		Globals.toolsLab.set_markup("<small>Options</small>")
+		Globals.deviceLab.set_markup("<small>Device: <b>%s</b></small>" % d)
+		Globals.aoscTitleLab.set_markup("<span font=\"18\">%s</span>" % r)
+		Globals.syncjobsLab.set_markup("<small>Sync: <b>%s</b></small>" % Parser().read("sync_jobs"))
+		Globals.makeLab.set_markup("<small>Make: <b>%s</b></small>" % Parser().read("make_jobs"))
+		Globals.compileLab.set_markup("<small>Compile</small>")
+		Globals.runFrameLab.set_markup("<small>Run options</small>")
+		Globals.statusFrameLab.set_markup("<small>Status: <small><span color=\"red\">Check terminal for status output to see if jobs are complete.</span></small></small>")
+		Globals.statusLab.set_markup("<span font=\"25\" variant=\"normal\">%s\n</span>" % stat)
+		Globals.toggleTermLab.set_markup("<small>Terminal</small>")
+		Globals.toggleAdbLab.set_markup("<small>Adb log</small>")
+		Globals.toggleBashLab.set_markup("<small>Bash shell</small>")
+		Globals.resetLab.set_markup("<small>Stop/reset</small>")
+		Globals.contactFrameLab.set_markup("<small>Contact</small>")
+		Globals.buildFrameLab.set_markup("<small><b>Repo Path: </b>%s</small>" % p)
+		Globals.syncLab.set_markup("<small>Sync</small>")
+		Globals.clobberLab.set_markup("<small>Clobber</small>")
+		Globals.build_appLab.set_markup("<small><small>Build specific <b>app/binary</b> here. :: <b>enter</b> ::</small></small>")
+		Globals.KEY_BIND_INFO.set_markup("<small><small><small>Left control + [<b>v</b>:View config | <b>a</b>:Start adb | <b>m</b>:Start/stop | <b>t</b>:Toggle Term | <b>s</b>:Sync | <b>b</b>:build/compile | <b>r</b>:Repo path | <b>esc</b>:Quit]</small></small></small>")
+		if not os.path.exists(p):
+			Dialogs().CDial(gtk.MESSAGE_ERROR, "No Folder Found!", "Path: %s\n\nDoes not exist and it needs to to continue." % p)
+
+		Globals.MAIN_WIN.move(here, there)
+
+	def widgets(self):
+		(x, y) = Globals.MAIN_WIN.get_position()
+		x = int(x)
+		y = int(y)
+
+		if Parser().read(self.KEY_TERM_TOGGLE) == True:
+			self.TERM_FRAME_TABLE.show()
+			self.STATUS_FRAME.hide()
+			Parser().write(self.KEY_TERM_TOGGLE, True)
+
+		if Parser().read(self.KEY_TERM_TOGGLE) == False:
+			self.TERM_FRAME_TABLE.hide()
+			self.STATUS_FRAME.show()
+			Parser().write(self.KEY_TERM_TOGGLE, False)
+
+		Globals.MAIN_WIN.move(x, y)
+
+class Sync():
+	def run(self):
+		repo = Tools().which("repo")
+		if not repo:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Repo is not installed", "You need to install repo to continue.")
+			Update().main(None)
+			return False
+		b = Parser().read("branch")
+		if not b:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Device is not choosen", "You need a device to continue.")
+			Update().main(None)
+			return False
+		r = Parser().read("repo_path")
+		url = RepoHelper().getBranchUrl("init")
+		j = Parser().read("sync_jobs")
+		Update().main("Repo syncing with %s jobs for %s" % (j, b))
+		if not os.path.exists(r):
+			os.mkdir(r)
+		Globals.TERM.feed_child("cd \"%s\"\n" % r)
+		if not os.path.exists("%s/.repo" % r):
+			Globals.TERM.feed_child("repo init -u %s -b %s\n" % (url, b))
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Running repo init!", "You needed to init the repo, doing that now. Please run sync again when done")
+			return
+		Globals.TERM.feed_child("repo sync -j%s\n" % j)
+
+class Compile():
+	def run(self):
+		r = Parser().read("repo_path")
+		if not os.path.exists("%s/.repo" % r):
+			if Globals.checkClobber.get_active() == False:
+				RepoHelper().run_no_repo_found()
+				Globals.TERM.set_background_saturation(1.0)
+				Globals.TERM.fork_command('clear')
+			return
+		CM = CyanogenMod()
+		Update().main("Compiling CyanogenMod")
+		CM().Compile()
+
+def chkInstalled(arg):
+
+	p = False
+
+	cmd = "dpkg --get-selections " + arg
+	p = commands.getoutput(cmd)
+	try:
+		p = p.split("\t")
+		p = p[-1]
+		if p == "install":
+			p = True
+		else:
+			p = False
+	except:
+		p = False
+
+	return p
+
+def getLinux(arg):
+	# ('Ubuntu', '12.04', 'precise')
+	plat_list = platform.dist()
+	if arg == "Distro":
+		return plat_list[0]
+	elif arg == "Version":
+		return plat_list[1]
+	elif arg == "Name":
+		return plat_list[2]
+	else:
+		return None
+
+class RepoHelper():
+
+	def run_no_repo_found(self):
+		F = Tools().custom_list_dir(Globals.myHOME, ".repo")
+		try:
+			c = len(F)
+		except TypeError:
+			c = None
+
+		if not c:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Repo not found", "Appears you are trying to run something and repo doesn't exist")
+			return
+
+		cnt = 0
+		DIRS = ""
+		for x in F:
+			DIRS = "%s\n%s" % (DIRS, F[cnt]) 
+			cnt+=1
+		Dialogs().CDial(gtk.MESSAGE_INFO, "Repo not found", "Appears you are trying to run a command and you need repo.\n\nEither change your repo path, or run sync!\n\nFound:<b>%s</b>" % DIRS)
+		return
+
+	def getBranchUrl(self, arg):
+		BR = None
+		b = Parser().read("branch")
+		if not b:
+			Dialogs().CDial(gtk.MESSAGE_ERROR, "No branch choosen", "Please select a branch so I know which device list to pull.\n\nThanks!")
+			return
+
+		CM = CyanogenMod()
+		BR = CM.getBranch(arg)
+
+		return BR
+
+class InstallPackages():
+	def repo(self):
+		q = Dialogs().QDial("Install repo script", "Are you sure you want to install the repo script?\n\nThis will ask for root!")
+		if q == True:
+			Update().main("Installing repo...")
+			Globals.TERM.set_background_saturation(0.3)
+			Globals.TERM.fork_command("bash")
+			Globals.TERM.feed_child("clear\n")
+			Globals.TERM.feed_child("curl https://dl-ssl.google.com/dl/googlesource/git-repo/repo > repo\n")
+			Globals.TERM.feed_child("chmod a+x repo\n")
+			Globals.TERM.feed_child("gksudo mv repo /usr/local/bin/repo\n")
+		return
+		
+
+	def Ubuntu(self, version):
+
+		L = []
+
+		if version == "12.10":
+			pak = "libwxgtk2.8-dev"
+		else:
+			pak = "libwxgtk2.6-dev"
+		P = ["git-core", "gnupg", "flex", "bison", "gperf", "libsdl1.2-dev", "libesd0-dev", "squashfs-tools", "build-essential", "zip", "curl", "libncurses5-dev", "zlib1g-dev", "openjdk-6-jdk", "pngcrush", "libxml2-utils", "schedtool", "xsltproc", pak]
+		for x in P:
+			i = chkInstalled(x)
+			if i == False:
+				L.extend([x])
+
+		check = (sys.maxsize > 2**32)
+		if check is True:
+			if version == "10.04":
+				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline5-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
+				for x in P:
+					i = chkInstalled(x)
+					if i == False:
+						L.extend([x])
+			elif version == "11.04":
+				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
+				for x in P:
+					i = chkInstalled(x)
+					if i == False:
+						L.extend([x])
+			elif version == "12.10" or version == "12.04" or version == "11.10":
+				P = ["g++-multilib", "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev"]
+				for x in P:
+					i = chkInstalled(x)
+					if i == False:
+						L.extend([x])
+		print len(L)
+		if len(L) == 0:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Empty package list", "You already have the packages you need installed!")
+		else:
+			packages = ",".join(L).replace(",", " ")
+			q = Dialogs().QDial("Are you sure??", "We are going to install this list of packages\n\n%s\n\n Are you sure we should proceed?" % packages)
+			if q == True:
+				Globals.TERM.set_background_saturation(0.3)
+				Globals.TERM.fork_command("bash")
+				Globals.TERM.feed_child("clear\n")
+				Globals.TERM.feed_child("gksudo \"apt-get install -y %s\"\n" % packages)
+			else:
+				return
+
+	def runInstall(self):
+		D = getLinux("Distro")
+		if D == "Ubuntu":
+			V = getLinux("Version")
+			InstallPackages().Ubuntu(V)
+		else:
+			Dialogs().CDial(gtk.MESSAGE_WARNING, "Linux Distro", "Sorry, we couldn't detect your linux distro. File a bug report with this info:\n\n<b>Distro: </b>%s\n<b>Version: </b>%s\n<b>Name: </b>%s\n" % (plat_d, plat_v, plat_n))
+
+class Parser():
+
+	title = "CMCompiler"
+
+	def read(self, arg):
+		title = self.title
+		try:
+			config = ConfigParser.RawConfigParser()
+			config.read(Globals.myCONF)
+			c = config.get(title, arg)
+		except ConfigParser.NoSectionError:
+			c = "%s" % ("Default")
+
+		if c == "True":
+			c = True
+
+		if c == "False":
+			c = False
+
+		if c == "None":
+			c = None
+
+		return c
+
+	def write(self, arg, value):
+		title = self.title
+		try:
+			config = ConfigParser.RawConfigParser()
+			config.read(Globals.myCONF)
+			getDevice = config.get(title, 'device')
+			getBranch = config.get(title, 'branch')
+			getRepoPath = config.get(title, 'repo_path')
+			getSyncJobs = config.get(title, 'sync_jobs')
+			getMakeJobs = config.get(title, 'make_jobs')
+			getManuf = config.get(title, 'manuf')
+			getVerbose = config.get(title, 'verbose')
+			getTermToggle = config.get(title, 'term_toggle')
+			getWinX = config.get(title, 'win_x')
+			getWinY = config.get(title, 'win_y')
+			getBackground = config.get(title, 'background')
+
+		except:
+			getDevice = None
+			getBranch = None
+			getRepoPath = None
+			getSyncJobs = None
+			getMakeJobs = None
+			getManuf = None
+			getVerbose = None
+			getTermToggle = None
+			getWinX = None
+			getWinY = None
+			getWinW = None
+			getWinH = None
+			getBackground = None
+
+		config = ConfigParser.RawConfigParser()
+		config.add_section(title)
+
+		if arg == "device":
+			config.set(title, 'device', value)
+		elif getDevice:
+			config.set(title, 'device', getDevice)
+		else:
+			config.set(title, 'device', None)
+
+		if arg == "branch":
+			config.set(title, 'branch', value)
+		elif getBranch:
+			config.set(title, 'branch', getBranch)
+		else:
+			config.set(title, 'branch', None)
+
+		if arg == "repo_path":
+			config.set(title, 'repo_path', value)
+		elif getRepoPath:
+			config.set(title, 'repo_path', getRepoPath)
+		else:
+			config.set(title, 'repo_path', Globals.myDEF_REPO_PATH)
+		
+		if arg == "sync_jobs":
+			config.set(title, 'sync_jobs', value)
+		elif getSyncJobs:
+			config.set(title, 'sync_jobs', getSyncJobs)
+		else:
+			config.set(title, 'sync_jobs', "4")
+		
+		if arg == "make_jobs":
+			config.set(title, 'make_jobs', value)
+		elif getMakeJobs:
+			config.set(title, 'make_jobs', getMakeJobs)
+		else:
+			config.set(title, 'make_jobs', Globals.PROCESSORS)
+		
+		if arg == "manuf":
+			config.set(title, 'manuf', value)
+		elif getManuf:
+			config.set(title, 'manuf', getManuf)
+		else:
+			config.set(title, 'manuf', None)
+
+		if arg == "term_toggle":
+			config.set(title, 'term_toggle', value)
+		elif getTermToggle:
+			config.set(title, 'term_toggle', getTermToggle)
+		else:
+			config.set(title, 'term_toggle', True)
+
+		if arg == "win_x":
+			config.set(title, 'win_x', value)
+		elif getWinX:
+			config.set(title, 'win_x', getWinX)
+		else:
+			config.set(title, 'win_x', 50)
+
+		if arg == "win_y":
+			config.set(title, 'win_y', value)
+		elif getWinY:
+			config.set(title, 'win_y', getWinY)
+		else:
+			config.set(title, 'win_y', 50)
+
+		if arg == "verbose":
+			config.set(title, 'verbose', value)
+		elif getVerbose:
+			config.set(title, 'verbose', getVerbose)
+		else:
+			config.set(title, 'verbose', False)
+
+		if arg == "background":
+			config.set(title, 'background', value)
+		elif getBackground:
+			config.set(title, 'background', getBackground)
+		else:
+			config.set(title, 'background', None)
+
+		with open(Globals.myCONF, 'wb') as configfile:
+    			config.write(configfile)
+
+class AOSCompiler():
+
+	ASK_CONFIRM = Globals.AskConfirm
+	KEY_REPO_PATH = Globals.KeyRepoPath
+	TERM_FRAME_TABLE = Globals.TermFrameTable
+	STATUS_FRAME = Globals.StatusFrame
+	KEY_WIN_X = Globals.KeyWinX
+	KEY_WIN_Y = Globals.KeyWinY
+	KEY_TERM_TOGGLE = Globals.KeyTermToggle
+	LINK_LIST = Globals.LinkList
+	TERM_FRAME_TABLE = Globals.TermFrameTable
+
+        def About(self, widget):
+		authors = ["lithid"]
+                dialog = gtk.AboutDialog()
+                dialog.set_name("CMCompiler")
+		dialog.set_program_name("CMCompiler")
+                dialog.set_version("Beta 0.6")
+		dialog.set_authors(authors)
+                dialog.set_comments(Globals.about_info)
+                dialog.set_copyright("CMCompiler - 2012")
+                dialog.set_website_label("Donate")
+                dialog.set_website(Globals.myDONATE)
+                dialog.run()
+                dialog.destroy()
+
+	makeCombo = gtk.combo_box_new_text()
+	for i in range(1,Globals.PROCESSORS+1):
+		makeCombo.append_text(str(i))
+
+	syncCombo = gtk.combo_box_new_text()
+	for i in range(1,17):
+		syncCombo.append_text(str(i))
+ 
+	def main_quit(self, widget, event=None):
+		(x, y) = Globals.MAIN_WIN.get_position()
+		x = int(x)
+		y = int(y)
+		Parser().write(self.KEY_WIN_X, x)
+		Parser().write(self.KEY_WIN_Y, y)
+		gtk.main_quit()
+
+	def on_key_press(self, widget, data=None):
+		i = gtk.gdk.keyval_name(data.keyval)
+		if i == "v" and data.state & gtk.gdk.CONTROL_MASK:
+			Utils().ViewConfig()
+		elif i == "a" and data.state & gtk.gdk.CONTROL_MASK:
+			Utils().start_adb()
+		elif i == "m" and data.state & gtk.gdk.CONTROL_MASK:
+			Utils().ResetTerm()
+		elif i == "s" and data.state & gtk.gdk.CONTROL_MASK:
+			Sync().run()
+		elif i == "t" and data.state & gtk.gdk.CONTROL_MASK:
+			toggle_term_btn()
+		elif i == "b" and data.state & gtk.gdk.CONTROL_MASK:
+			Compile().run()
+		elif i == "r" and data.state & gtk.gdk.CONTROL_MASK:
+			Utils().choose_repo_path()
+		elif  i == "Escape":
+			self.main_quit(None, None)
+		else:
+			pass
+
+	def menu_item_open_build_folder(self, widget):
+		Utils().openBuildFolder()
+
+	def menu_item_add_custom_device(self, widget):
+		Utils().run_custom_device()
+
+	def menu_item_view_config(self, widget):
+		Utils().ViewConfig()
+
+	def menu_item_change_background(self, widget):
+		Utils().change_background()
+
+	def menu_item_choose_repo_path(self, widget):
+		Utils().choose_repo_path()
+
+	def menu_item_remove_repo(self, widget):
+		Utils().remove_repo()
+
+	def menu_item_remove_config(self, widget):
+		Utils().remove_config()
+
+	def menu_item_install_repo(self, widget):
+		InstallPackages().repo()
+
+	def menu_item_install_packages(self, widget):
+		InstallPackages().runInstall()
+ 
+	# Main program
+	def main(self):
+
+		myMAIN_ICON = gtk.gdk.pixbuf_new_from_file(Globals.myICON)
+		Globals.MAIN_WIN.set_title(Globals.myMainTitle)
+		Globals.MAIN_WIN.set_icon(myMAIN_ICON)
+		x = Parser().read(self.KEY_WIN_X)
+		y = Parser().read(self.KEY_WIN_Y)
+		x = int(x)
+		y = int(y)
+		Globals.MAIN_WIN.move(x, y)
+		Globals.MAIN_WIN.connect("delete_event", self.main_quit)
+		Globals.MAIN_WIN.connect("key_press_event", self.on_key_press)
+		Globals.MAIN_WIN.set_events(gtk.gdk.KEY_PRESS_MASK)
+		Globals.MAIN_WIN.set_events(gtk.gdk.CONTROL_MASK)
+		Globals.MAIN_WIN.set_resizable(False)
+
+		toptable.show()
+		hbox = gtk.HBox(False, 10)
+		hbox.show()
+
+		resetFrame = gtk.Frame()
+		resetFrame.set_label_widget(Globals.resetLab)
+		resetImg = gtk.Image()
+		resetImg.set_from_file(Globals.DeviceImg)
+		Globals.resetBtn.set_image(resetImg)
+		Globals.resetBtn.connect("clicked", Utils().reset_button)
+		Globals.resetBtn.set_size_request(40, 25)
+		Globals.resetBtn.show()
+		resetFrame.add(Globals.resetBtn)
+		hbox.add(resetFrame)
+
+		toggleTermFrame = gtk.Frame()
+		toggleTermFrame.set_label_widget(Globals.toggleTermLab)
+		if Parser().read(self.KEY_TERM_TOGGLE) == True:
+			Globals.checkTermToggle.set_active(True)
+		else:
+			Globals.checkTermToggle.set_active(False)
+		Globals.checkTermToggle.connect("clicked", Utils().checked_term_toggle)
+		Globals.checkTermToggle.show()
+		toggleTermFrame.add(Globals.checkTermToggle)
+		hbox.add(toggleTermFrame)
+
+		toggleAdbFrame = gtk.Frame()
+		toggleAdbFrame.set_label_widget(Globals.toggleAdbLab)
+		Globals.checkAdbToggle.set_active(False)
+		Globals.checkAdbToggle.connect("clicked", Utils().checked_adb_toggle)
+		Globals.checkAdbToggle.show()
+		toggleAdbFrame.add(Globals.checkAdbToggle)
+		hbox.add(toggleAdbFrame)
+
+		toggleBashFrame = gtk.Frame()
+		toggleBashFrame.set_label_widget(Globals.toggleBashLab)
+		Globals.checkBashToggle.set_active(False)
+		Globals.checkBashToggle.connect("clicked", Utils().checked_bash_toggle)
+		Globals.checkBashToggle.show()
+		toggleBashFrame.add(Globals.checkBashToggle)
+		hbox.add(toggleBashFrame)
+
+		toptable.attach(hbox, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+
+		self.STATUS_FRAME.add(Globals.statusLab)
+		self.STATUS_FRAME.set_border_width(25)
+		self.STATUS_FRAME.set_label_widget(Globals.statusFrameLab)
+
+		TERM_FRAME = gtk.Frame()
+		TERM_FRAME.set_size_request(1058, 390)
+		TERM_FRAME.add(Globals.TERM)
+
+		self.TERM_FRAME_TABLE.attach(TERM_FRAME, 0, 1, 0, 1, xpadding=10)
+		self.TERM_FRAME_TABLE.hide()
+
+		Globals.KEY_BIND_INFO.show()
+		Globals.aoscTitleLab.show()
+
+		Globals.romLab.show()
+
+		aboutRomImg = gtk.Image()
+		aboutRomImg.set_from_file(Globals.ClobImg)
+		Globals.aboutRomBtn.set_image(aboutRomImg)
+		Globals.aboutRomBtn.connect("clicked", Utils().aboutRom)
+		Globals.aboutRomBtn.set_size_request(40, 25)
+		Globals.aboutRomBtn.show()
+
+		Globals.aboutRomLab.show()
+
+		branchImg = gtk.Image()
+		branchImg.set_from_file(Globals.ClobImg)
+		Globals.branchBtn.set_image(branchImg)
+		Globals.branchBtn.connect("clicked", Utils().choose_branch)
+		Globals.branchBtn.set_size_request(40, 25)
+		Globals.branchBtn.show()
+
+		Globals.branchLab.show()
+
+		DevImg = gtk.Image()
+		DevImg.set_from_file(Globals.DeviceImg)
+		Globals.DEV_BTN.set_image(DevImg)
+		Globals.DEV_BTN.connect("clicked", Utils().device_button)
+		Globals.DEV_BTN.set_size_request(40, 25)
+		Globals.DEV_BTN.show()
+
+		Globals.deviceLab.show()
+
+		self.syncCombo.show()
+		self.syncCombo.set_wrap_width(4)
+		self.syncCombo.set_size_request(32, 25)
+		self.syncCombo.connect("changed", Utils().sync_combo_change)
+
+		Globals.syncjobsLab.show()
+
+		self.makeCombo.show()
+		self.makeCombo.set_wrap_width(4)
+		self.makeCombo.set_size_request(32, 25)
+		self.makeCombo.connect("changed", Utils().compile_combo_change)
+
+		Globals.makeLab.show()
+
+		optTable = gtk.Table(2, 1, False)
+		optTable.show()
+		optTable.attach(Globals.aboutRomBtn, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.aboutRomLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.branchBtn, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.branchLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.DEV_BTN, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.deviceLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(self.syncCombo, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.syncjobsLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(self.makeCombo, 4, 5, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.makeLab, 4, 5, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.set_border_width(5)
+		optFrame.add(optTable)
+		Globals.buildFrameLab.show()
+		opthbox = gtk.HBox(False, 5)
+		opthbox.show()
+		optFrame.set_label_widget(Globals.buildFrameLab)
+		optFrame.set_size_request(900, 75)
+		optFrame.show()
+		opthbox.pack_start(optFrame, True, True, 91)
+
+		# Build Frame
+		Globals.checkCompile.set_active(False)
+		Globals.checkCompile.show()
+
+		Globals.compileLab.show()
+
+		Globals.checkSync.set_active(False)
+		Globals.checkSync.show()
+
+		Globals.syncLab.show()
+
+		Globals.checkClobber.set_active(False)
+		Globals.checkClobber.show()
+
+		Globals.clobberLab.show()
+
+		runImg = gtk.Image()
+		runImg.set_from_file(Globals.ClobImg)
+		Globals.runBtn.set_image(runImg)
+		Globals.runBtn.connect("clicked", Utils().run_button)
+		Globals.runBtn.set_size_request(40, 25)
+		Globals.runBtn.show()
+
+		Globals.runLab.show()
+
+		buildTable = gtk.Table(2, 1, False)
+		buildTable.show()
+		buildTable.attach(Globals.checkCompile, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.compileLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.checkSync, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.syncLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.checkClobber, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.clobberLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.runBtn, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.attach(Globals.runLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		buildTable.set_border_width(5)
+		buildFrame = gtk.Frame()
+		buildFrame.add(buildTable)
+		buildFrame.set_shadow_type(gtk.SHADOW_NONE)
+		Globals.runFrameLab.show()
+		buildFrame.set_label_widget(Globals.runFrameLab)
+		buildFrame.show()
+
+		# Entrybox stuff
+		tableEntry = gtk.Table(1, 2, False)
+		tableEntry.show()
+
+		Globals.packageEntryBox.show()
+		Globals.packageEntryBox.connect("activate", Utils().run_vt_command)
+
+		Globals.build_appLab.show()
+
+		tableEntry.attach(Globals.packageEntryBox, 0, 1, 0, 1, ypadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		tableEntry.attach(Globals.build_appLab, 0, 1, 1, 2, xoptions=gtk.EXPAND)
+		tableEntry.set_border_width(5)
+
+		Globals.LinkContact.show()
+
+		# Link footer stuff
+		LinksTable = gtk.Table(2, 1, False)
+		LinksTable.show()
+
+		SpacerLinkR = gtk.Label()
+		SpacerLinkR.show()
+
+		SpacerLinkL = gtk.Label()
+		SpacerLinkL.show()
+
+		count = 0
+		for i in self.LINK_LIST:
+			count+=1
+			name = "%s/%s.png" % (Globals.myIMGS, i)
+			image = gtk.Image()
+			image.set_from_file(name)
+			image.show()
+			event = gtk.EventBox()
+			event.connect("button_press_event", Utils().press_link_button, i)
+			event.add(image)
+			event.set_size_request(26, 26)
+			event.show()
+			tooltip = gtk.Tooltips()
+			tooltip.set_tip(event, i)
+			LinksTable.attach(event, count-1, count, 0, 1,)
+
+		linksFrame = gtk.Frame()
+		linksFrame.add(LinksTable)
+		linksFrame.set_size_request(300, 75)
+		Globals.contactFrameLab.show()
+		linksFrame.set_label_widget(Globals.contactFrameLab)
+		linksFrame.set_shadow_type(gtk.SHADOW_NONE)
+		linksFrame.show()
+
+		# Main button table
+		tableB.show()
+
+		tableB.attach(buildFrame, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		tableB.attach(tableEntry, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		tableB.attach(linksFrame, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+
+		# File menu item
+		menu_bar_file = gtk.Menu()
+		file_menu = gtk.MenuItem("File")
+		file_menu.set_submenu(menu_bar_file)
+
+		menu_open_build_folder = gtk.MenuItem("Open Build Folder")
+		menu_bar_file.append(menu_open_build_folder)
+		menu_open_build_folder.connect("activate", self.menu_item_open_build_folder)
+		menu_open_build_folder.show()
+
+		menu_add_custom_device = gtk.MenuItem("Add Custom Device")
+		menu_bar_file.append(menu_add_custom_device)
+		menu_add_custom_device.connect("activate", self.menu_item_add_custom_device)
+		menu_add_custom_device.show()
+
+		menu_view_config = gtk.MenuItem("View Config")
+		menu_bar_file.append(menu_view_config)
+		menu_view_config.connect("activate", self.menu_item_view_config)
+		menu_view_config.show()
+
+		separator = gtk.SeparatorMenuItem()
+		menu_bar_file.append(separator)
+		separator.show()
+
+		menu_close = gtk.MenuItem("Close")
+		menu_bar_file.append(menu_close)
+		menu_close.connect("activate",  self.main_quit)
+		menu_close.show()
+
+		# Edit menu item
+		menu_bar_edit = gtk.Menu()
+		edit_menu = gtk.MenuItem("Edit")
+		edit_menu.set_submenu(menu_bar_edit)
+
+		menu_change_background = gtk.MenuItem("Change Background")
+		menu_bar_edit.append(menu_change_background)
+		menu_change_background.connect("activate", self.menu_item_change_background)
+		menu_change_background.show()
+
+		menu_choose_repo_path = gtk.MenuItem("Choose Repo Path")
+		menu_bar_edit.append(menu_choose_repo_path)
+		menu_choose_repo_path.connect("activate", self.menu_item_choose_repo_path)
+		menu_choose_repo_path.show()
+
+		menu_remove_repo = gtk.MenuItem("Remove Repo")
+		menu_bar_edit.append(menu_remove_repo)
+		menu_remove_repo.connect("activate",  self.menu_item_remove_repo)
+		menu_remove_repo.show()
+
+		menu_remove_config = gtk.MenuItem("Remove Config")
+		menu_bar_edit.append(menu_remove_config)
+		menu_remove_config.connect("activate",  self.menu_item_remove_config)
+		menu_remove_config.show()
+
+		# Help menu item
+		menu_bar_help = gtk.Menu()
+		help_menu = gtk.MenuItem("Help")
+		help_menu.set_submenu(menu_bar_help)
+
+		menu_install_packages = gtk.MenuItem("Install Packages")
+		menu_bar_help.append(menu_install_packages)
+		menu_install_packages.connect("activate", self.menu_item_install_packages)
+		menu_install_packages.show()
+
+		menu_install_repo = gtk.MenuItem("Install Repo")
+		menu_bar_help.append(menu_install_repo)
+		menu_install_repo.connect("activate", self.menu_item_install_repo)
+		menu_install_repo.show()
+
+		separator = gtk.SeparatorMenuItem()
+		menu_bar_help.append(separator)
+		separator.show()
+
+		menu_about = gtk.MenuItem("About")
+		menu_bar_help.append(menu_about)
+		menu_about.connect("activate", self.About)
+		menu_about.show()
+
+		# Build the menu bar
+		menu_bar = gtk.MenuBar()
+		menu_bar.show()
+
+		menu_bar.append(file_menu)
+		menu_bar.append(edit_menu)
+		menu_bar.append(help_menu)
+
+		MAIN_VBOX.pack_start(menu_bar, False, False, 0)
+
+		MAIN_VBOX.pack_start(toptable, False, False, 0)
+		MAIN_VBOX.pack_start(self.STATUS_FRAME, True, True, 0)
+		MAIN_VBOX.pack_start(self.TERM_FRAME_TABLE, True, True, 0)
+		MAIN_VBOX.pack_start(opthbox, True, True, 0)
+		MAIN_VBOX.pack_start(tableB, True, True, 0)
+		MAIN_VBOX.pack_start(Globals.KEY_BIND_INFO, False, False, 10)
+
+		Update().background()
+
+		Globals.MAIN_WIN.add(MAIN_VBOX)
+		Globals.MAIN_WIN.show_all()
+		Update().widgets()
+		Update().main(None)
+		gtk.main()
+
+def main():
+	gtk.main()
+	return 0
+
+class Setup():
+	def is_cmc_setup(self):
+		os.chdir(Globals.myCONF_DIR)
+		for name in Globals.LinkList:
+			name = "%s/%s.png" % (Globals.myIMGS, name)
+			if not os.path.exists(name):
+				return False
+
+		for name in Globals.myFileList:
+			if not os.path.exists(name):
+				return False
+
+		if not os.path.exists("%s/aoscompiler" % Globals.myCONF_DIR):
+			return False
+
+		return True
+
+	def update_cmc(self):
+		print "Cyanogenmod Center needs setup, doing that now."
+		Tools().UnzipFile(Globals.myUpdateUrl, "update.zip", Globals.myCONF_DIR)
+		if not os.path.exists(Globals.myIMGS):
+			os.mkdir(Globals.myIMGS)
+
+		os.chdir('AOSCompiler-master')
+		for filepath in os.listdir('share/images'):
+			src_file = os.path.join('share/images', filepath)
+			dst_file = os.path.join(Globals.myIMGS, filepath)
+			shutil.move(src_file, dst_file)
+
+		shutil.move('share/desktop/aoscompiler.desktop', '%s/.local/share/applications/aoscompiler.desktop' % Globals.myHOME)
+		shutil.move('share/aoscompiler', Globals.myCONF_DIR)
+		os.chmod("%s/aoscompiler" % Globals.myCONF_DIR, 0775)
+		os.chdir(Globals.myCONF_DIR)
+		shutil.rmtree('AOSCompiler-master')
+
+if __name__ == "__main__":
+	Utils().chk_config()
+
+	S = Setup().is_cmc_setup()
+	if not S:
+		Setup().update_cmc()
+	
+	if not os.path.exists(Globals.myCONF):
+		Parser().write("branch", None)
+
+	Parser().write("verbose", False)
+	if len(sys.argv) is 2:
+		if sys.argv[1] in ("-v", "--verbose"):
+			Parser().write("verbose", True)
+		else:
+			print "Got %s arguments, but not \"-v\" or \"--verbose\". Leaving" % len(sys.argv)
+			exit(1)
+	elif len(sys.argv) is 1:
+		pass
+	else:
+		print "Got %s arguments, only need 1. Leaving" % len(sys.argv)
+		exit(1)
+
+	if not os.path.exists(Globals.myDEF_REPO_PATH):
+		os.mkdir(Globals.myDEF_REPO_PATH)
+	
+	if not os.path.exists(AOSCompiler().ASK_CONFIRM):
+		Utils().get_askConfirm()
+
+	AOSCompiler().main()
+

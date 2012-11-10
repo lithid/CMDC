@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=AOSCompiler
+Name[en_US]=AOSCompiler
+GenericName=AOSCompiler
+Comment=Build AOSP roms
+Exec=aoscompiler
+Terminal=false
+Icon=/usr/share/aoscompiler/images/aosc-icon.png
+Type=Application
+Categories=GTK;Development;
