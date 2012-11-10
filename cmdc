@@ -1928,6 +1928,11 @@ class AOSCompiler():
 		menu_remove_config.connect("activate",  self.menu_item_remove_config)
 		menu_remove_config.show()
 
+		menu_force_update = gtk.MenuItem("Forced Update")
+		menu_bar_edit.append(menu_force_update)
+		menu_force_update.connect("activate",  self.update_cmdc_button)
+		menu_force_update.show()
+
 		# Help menu item
 		menu_bar_help = gtk.Menu()
 		help_menu = gtk.MenuItem("Help")
