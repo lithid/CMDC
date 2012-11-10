@@ -142,13 +142,13 @@ class Globals():
 	myTermWall = ('%s/termwall.jpg') % (myIMGS)
 	myTHEME = ('%s/theme/') % (myIMGS)
 	SyncImg = ('%s/sync.png') % (myIMGS)
-	CompileImg = ('%s/compile.png') % (myIMGS)
+	RunImg = ('%s/run.png') % (myIMGS)
 	DeviceImg = ('%s/device.png') % (myIMGS)
 	ClobImg = ('%s/clobber.png') % (myIMGS)
 	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
 	myTermFont = ('Ubuntu Mono 9')
-	myFileList = [myICON, myTermWall, SyncImg, CompileImg, DeviceImg, ClobImg]
+	myFileList = [myICON, myTermWall, SyncImg, RunImg, DeviceImg, ClobImg]
 
 	# Strings
 	StrUserConfirm = '**** User Confirmation ****'
@@ -1783,7 +1783,7 @@ class AOSCompiler():
 		Globals.clobberLab.show()
 
 		runImg = gtk.Image()
-		runImg.set_from_file(Globals.ClobImg)
+		runImg.set_from_file(Globals.RunImg)
 		Globals.runBtn.set_image(runImg)
 		Globals.runBtn.connect("clicked", Utils().run_button)
 		Globals.runBtn.set_size_request(40, 25)
