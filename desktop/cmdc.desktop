@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=0.1
-Name=AOSCompiler
-Name[en_US]=cmdc.desktop
-GenericName=AOSCompiler
-Comment=Build AOSP roms
-Exec=aoscompiler
+Name=CyanogenMod Dev Center
+Name[en_US]=CyanogenMod Dev Center
+GenericName=CyanogenMod Dev Center
+Comment=Develop tool for CyanogenMod
+Exec=$HOME/.cmdc/cmdc
 Terminal=false
-Icon=/usr/share/aoscompiler/images/aosc-icon.png
+Icon=$HOME/.cmdc/images/cmdc-icon.png
 Type=Application
 Categories=GTK;Development;

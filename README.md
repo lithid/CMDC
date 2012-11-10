@@ -12,3 +12,7 @@ Make sure you have the following dependancies installed
 Just run this command to run it
 
     python <(curl -s https://raw.github.com/lithid/CMDC/master/cmdc)
+
+Once you run it the first time it will create the script in
+
+    $HOME/.cmdc/cmdc
