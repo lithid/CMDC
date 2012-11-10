@@ -127,24 +127,24 @@ class Globals():
 	# Local config junk
 	myHOME = (os.environ['HOME'])
 	myGIT_CONF = ('%s/.gitconfig') % (myHOME)
-	myCONF_DIR = ('%s/.aoscompiler') % (myHOME)
-	myCONF = ('%s/aoscompiler.conf') % (myCONF_DIR)
+	myCONF_DIR = ('%s/.cmdc') % (myHOME)
+	myCONF = ('%s/cmdc.conf') % (myCONF_DIR)
 	myCONFIRM = ('%s/ask.confim') % (myCONF_DIR)
 	myREPO_CONF = ('%s/repo_list') % (myCONF_DIR)
 	myDEF_REPO_PATH = ('%s/build') % (myCONF_DIR)
 	AskConfirm = ('%s/ask.confim') % (myCONF_DIR)
 
 	# Resources
-	myMainTitle = ('CyanogenMod Center')
+	myMainTitle = ('CyanogenMod Dev Center')
 	myIMGS = ('%s/images') % (myCONF_DIR)
-	myICON = ('%s/aosc-icon.png') % (myIMGS)
+	myICON = ('%s/cmdc-icon.png') % (myIMGS)
 	myTermWall = ('%s/termwall.jpg') % (myIMGS)
 	myTHEME = ('%s/theme/') % (myIMGS)
 	SyncImg = ('%s/sync.png') % (myIMGS)
 	CompileImg = ('%s/compile.png') % (myIMGS)
 	DeviceImg = ('%s/device.png') % (myIMGS)
 	ClobImg = ('%s/clobber.png') % (myIMGS)
-	aoscData = ('https://raw.github.com/lithid/AOSC_Data/master')
+	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
 	myTermFont = ('Ubuntu Mono 9')
 	myFileList = [myICON, myTermWall, SyncImg, CompileImg, DeviceImg, ClobImg]
@@ -186,7 +186,7 @@ class Globals():
 			'<small><b>-</b><i> Cyanogenmod doesn\'t consider source builds offical, please keep this in mind if you plan on bug reporting.</i></small></small>\n\n'
 			'Any bugs? Please report them:\n\nhttp://github.com/lithid/AOSCompiler/issues\n')
 
-	about_info = ('The CyanogenMod Center was written, not to dismiss the need'
+	about_info = ('The CyanogenMod Dev Center was written, not to dismiss the need'
 			'to learn the android system, but to release the need consistly remember menial tasks.\n\n'
 			'Please intend to learn the system, contribute back to any upstream.\n\n'
 			'Happy compiling,\n\nCode: Jeremie Long\n\n'
@@ -1140,7 +1140,7 @@ class Update():
 		b = Parser().read("branch")
 		d = Parser().read("device")
 		p = Parser().read("repo_path")
-		r = "CyanogenMod Center"
+		r = "CyanogenMod Dev Center"
 		if status == None:
 			stat = "Waiting for command..."
 		else:
@@ -1952,28 +1952,28 @@ class Setup():
 			if not os.path.exists(name):
 				return False
 
-		if not os.path.exists("%s/aoscompiler" % Globals.myCONF_DIR):
+		if not os.path.exists("%s/cmdc" % Globals.myCONF_DIR):
 			return False
 
 		return True
 
 	def update_cmc(self):
-		print "Cyanogenmod Center needs setup, doing that now."
+		print "CyanogenMod Dev Center needs setup, doing that now."
 		Tools().UnzipFile(Globals.myUpdateUrl, "update.zip", Globals.myCONF_DIR)
 		if not os.path.exists(Globals.myIMGS):
 			os.mkdir(Globals.myIMGS)
 
-		os.chdir('AOSCompiler-master')
+		os.chdir('CMDC-master')
 		for filepath in os.listdir('share/images'):
 			src_file = os.path.join('share/images', filepath)
 			dst_file = os.path.join(Globals.myIMGS, filepath)
 			shutil.move(src_file, dst_file)
 
-		shutil.move('share/desktop/aoscompiler.desktop', '%s/.local/share/applications/aoscompiler.desktop' % Globals.myHOME)
-		shutil.move('share/aoscompiler', Globals.myCONF_DIR)
-		os.chmod("%s/aoscompiler" % Globals.myCONF_DIR, 0775)
+		shutil.move('share/desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
+		shutil.move('share/cmdc', Globals.myCONF_DIR)
+		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
 		os.chdir(Globals.myCONF_DIR)
-		shutil.rmtree('AOSCompiler-master')
+		shutil.rmtree('CMDC-master')
 
 if __name__ == "__main__":
 	Utils().chk_config()
