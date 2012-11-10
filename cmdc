@@ -159,6 +159,8 @@ class Globals():
 	myDONATE = ('http://forum.xda-developers.com/donatetome.php?u=2709018')
 	myREPO_TOOL_URL = ('https://dl-ssl.google.com/dl/googlesource/git-repo/repo')
 	myUpdateUrl = ('https://github.com/lithid/CMDC/archive/master.zip')
+	myChangeLogUrl = ('https://raw.github.com/lithid/CMDC/master/ChangeLog')
+	myChangeLogLocal = ('%s/ChangeLog' % myCONF_DIR)
 
 	# For dialogs
 	DialogError = gtk.MESSAGE_ERROR
@@ -1123,6 +1125,32 @@ class Utils():
 
 		Update().widgets()
 
+	def viewChangelog(self):
+		dialog = gtk.Dialog("Change background", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(500, 350)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		textview = gtk.TextView()
+		textbuffer = textview.get_buffer()
+		scroll.add(textview)
+		scroll.show()
+		textview.show()
+
+		dialog.vbox.pack_start(scroll, True, True, 0)
+
+		try:
+			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).read()
+			textbuffer.set_text(urlfile)
+		except:
+			Dialogs().CDial(self.DIALOG_ERROR, "Can't read Changelog", "Please check your internet connection and try again.")
+			return
+
+		dialog.run()
+		dialog.destroy()
+
 class Update():
 
 	KEY_TERM_TOGGLE = Globals.KeyTermToggle
@@ -1591,6 +1619,9 @@ class AOSCompiler():
 	def menu_item_install_repo(self, widget):
 		InstallPackages().repo()
 
+	def menu_item_changelog(self, widget):
+		Utils().viewChangelog()
+
 	def menu_item_install_packages(self, widget):
 		InstallPackages().runInstall()
  
@@ -1907,6 +1938,15 @@ class AOSCompiler():
 		menu_bar_help.append(separator)
 		separator.show()
 
+		menu_changelog = gtk.MenuItem("ChangeLog")
+		menu_bar_help.append(menu_changelog)
+		menu_changelog.connect("activate", self.menu_item_changelog)
+		menu_changelog.show()
+
+		separator = gtk.SeparatorMenuItem()
+		menu_bar_help.append(separator)
+		separator.show()
+
 		menu_about = gtk.MenuItem("About")
 		menu_bar_help.append(menu_about)
 		menu_about.connect("activate", self.About)
@@ -1984,9 +2024,24 @@ class Setup():
 
 		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
 		shutil.move('cmdc', Globals.myCONF_DIR)
+		shutil.move('ChangeLog', Globals.myCONF_DIR)
 		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
 		os.chdir(Globals.myCONF_DIR)
 		shutil.rmtree('CMDC-master')
+
+	def check_update(self):
+		try:
+			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).readlines()
+			remote = float(urlfile[2].strip())
+
+			localfile = open(Globals.myChangeLogLocal, 'r').readlines()
+			local = float(localfile[2].strip())
+
+			if local < remote:
+				return False
+			return True
+		except:
+			return True
 
 if __name__ == "__main__":
 	Utils().chk_config()
