@@ -1623,7 +1623,10 @@ class AOSCompiler():
 		InstallPackages().runInstall()
 
 	def update_cmdc_button(self, widget):
-		Setup().update_cmdc()
+		Setup().update_cmdc(Globals.myUpdateUrl, 'CMDC-master')
+
+	def menu_item_app_version(self, widget):
+		Setup().choose_app_version()
  
 	# Main program
 	def main(self):
@@ -1937,6 +1940,11 @@ class AOSCompiler():
 		menu_remove_config.connect("activate",  self.menu_item_remove_config)
 		menu_remove_config.show()
 
+		menu_app_version = gtk.MenuItem("Choose App Version")
+		menu_bar_edit.append(menu_app_version)
+		menu_app_version.connect("activate",  self.menu_item_app_version)
+		menu_app_version.show()
+
 		menu_force_update = gtk.MenuItem("Forced Update")
 		menu_bar_edit.append(menu_force_update)
 		menu_force_update.connect("activate",  self.update_cmdc_button)
@@ -2021,15 +2029,15 @@ class Setup():
 
 		return True
 
-	def update_cmdc(self):
-		Q = Dialogs().QDial("Update CyanogenMod Dev Center", "This will update the CMDC, is it ok to proceed?\n\nNote: You will have to restart the app once this is complete.")
+	def update_cmdc(self, URL, NAME):
+		Q = Dialogs().QDial("Update CyanogenMod Dev Center", "This will update the CMDC\n\nVersion: %s, is it ok to proceed?\n\nNote: You will have to restart the app once this is complete." % NAME)
 		if not Q:
 			return
-		Tools().UnzipFile(Globals.myUpdateUrl, "update.zip", Globals.myCONF_DIR)
+		Tools().UnzipFile(URL, "update.zip", Globals.myCONF_DIR)
 		if not os.path.exists(Globals.myIMGS):
 			os.mkdir(Globals.myIMGS)
 
-		os.chdir('CMDC-master')
+		os.chdir(NAME)
 		for filepath in os.listdir('images'):
 			src_file = os.path.join('images', filepath)
 			dst_file = os.path.join(Globals.myIMGS, filepath)
@@ -2052,7 +2060,7 @@ class Setup():
 		shutil.copy('ChangeLog', Globals.myCONF_DIR)
 		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
 		os.chdir(Globals.myCONF_DIR)
-		shutil.rmtree('CMDC-master')
+		shutil.rmtree(NAME)
 		Dialogs().CDial(gtk.MESSAGE_INFO, "Update CyanogenMod Dev Center Complete!", "Thank you for using this tool.\n\n-Lithid")
 		exit(0)
 
@@ -2070,12 +2078,69 @@ class Setup():
 		except:
 			return False
 
+	def choose_app_version(self):
+		versionList = []
+		try:
+			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).readlines()
+		except:
+			Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't view log", "Please check the internet connection")
+			return
+
+		for line in urlfile:
+			try:
+				num = float(line)
+				versionList.append(num)
+			except:
+				pass
+
+		def callback_version(widget, data=None):
+			print "%s was toggled" % data
+
+		dialog = gtk.Dialog("Choose version", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(260, 200)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+		table.set_row_spacings(45)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		device = gtk.RadioButton(None, None)
+
+		button_count = 0
+		for radio in versionList:
+
+			button_count += 1
+			button = "button%s" % (button_count)
+
+			button = gtk.RadioButton(group=device, label="%s" % (radio))
+			button.connect("toggled", callback_version, "%s" % (radio))
+			table.attach(button, 0, 1, 0, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+			button.show()
+
+		r = dialog.run()
+		if r == gtk.RESPONSE_ACCEPT:
+			active = [r for r in device.get_group() if r.get_active()][0]
+			version = active.get_label()
+			URL = "https://github.com/lithid/CMDC/archive/v%s.zip" % version
+			Setup().update_cmdc(URL, 'CMDC-%s' % version)
+		else:
+			pass
+		dialog.destroy()
+
 if __name__ == "__main__":
 	Utils().chk_config()
 
 	S = Setup().is_cmc_setup()
 	if not S:
-		Setup().update_cmdc()
+		Setup().update_cmdc(Globals.myUpdateUrl, 'CMDC-master')
 	
 	if not os.path.exists(Globals.myCONF):
 		Parser().write("branch", None)
