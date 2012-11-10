@@ -1542,14 +1542,16 @@ class AOSCompiler():
 	TERM_FRAME_TABLE = Globals.TermFrameTable
 
         def About(self, widget):
+		localfile = open(Globals.myChangeLogLocal, 'r').readlines()
+		localversion = float(localfile[2].strip())
 		authors = ["lithid"]
                 dialog = gtk.AboutDialog()
-                dialog.set_name("CMCompiler")
-		dialog.set_program_name("CMCompiler")
-                dialog.set_version("Beta 0.6")
+                dialog.set_name("CyanogenMod Dev Center")
+		dialog.set_program_name("CyanogenMod Dev Center")
+                dialog.set_version("v%s" % localversion)
 		dialog.set_authors(authors)
                 dialog.set_comments(Globals.about_info)
-                dialog.set_copyright("CMCompiler - 2012")
+                dialog.set_copyright("CyanogenMod Dev Center - 2012")
                 dialog.set_website_label("Donate")
                 dialog.set_website(Globals.myDONATE)
                 dialog.run()
