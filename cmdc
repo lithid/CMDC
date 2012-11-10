@@ -141,14 +141,12 @@ class Globals():
 	myICON = ('%s/cmdc-icon.png') % (myIMGS)
 	myTermWall = ('%s/termwall.jpg') % (myIMGS)
 	myTHEME = ('%s/theme/') % (myIMGS)
-	SyncImg = ('%s/sync.png') % (myIMGS)
 	RunImg = ('%s/run.png') % (myIMGS)
 	DeviceImg = ('%s/device.png') % (myIMGS)
-	ClobImg = ('%s/clobber.png') % (myIMGS)
 	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
 	myTermFont = ('Ubuntu Mono 9')
-	myFileList = [myICON, myTermWall, SyncImg, RunImg, DeviceImg, ClobImg]
+	myFileList = [myICON, myTermWall, RunImg, DeviceImg]
 
 	# Strings
 	StrUserConfirm = '**** User Confirmation ****'
@@ -1704,7 +1702,7 @@ class AOSCompiler():
 		Globals.romLab.show()
 
 		aboutRomImg = gtk.Image()
-		aboutRomImg.set_from_file(Globals.ClobImg)
+		aboutRomImg.set_from_file(Globals.DeviceImg)
 		Globals.aboutRomBtn.set_image(aboutRomImg)
 		Globals.aboutRomBtn.connect("clicked", Utils().aboutRom)
 		Globals.aboutRomBtn.set_size_request(40, 25)
@@ -1713,7 +1711,7 @@ class AOSCompiler():
 		Globals.aboutRomLab.show()
 
 		branchImg = gtk.Image()
-		branchImg.set_from_file(Globals.ClobImg)
+		branchImg.set_from_file(Globals.DeviceImg)
 		Globals.branchBtn.set_image(branchImg)
 		Globals.branchBtn.connect("clicked", Utils().choose_branch)
 		Globals.branchBtn.set_size_request(40, 25)
