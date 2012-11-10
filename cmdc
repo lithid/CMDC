@@ -41,8 +41,8 @@ class Tools():
 		urllib.urlretrieve(zipurl, myfile)
 		zfile = zipfile.ZipFile(myfile)
 		for name in zfile.namelist():
+			print name
 			(dirname, filename) = os.path.split(name)
-			print dirname
 			if not os.path.exists(dirname):
 				os.mkdir(dirname)
 
