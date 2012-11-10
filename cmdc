@@ -1964,13 +1964,13 @@ class Setup():
 			os.mkdir(Globals.myIMGS)
 
 		os.chdir('CMDC-master')
-		for filepath in os.listdir('share/images'):
-			src_file = os.path.join('share/images', filepath)
+		for filepath in os.listdir('images'):
+			src_file = os.path.join('images', filepath)
 			dst_file = os.path.join(Globals.myIMGS, filepath)
 			shutil.move(src_file, dst_file)
 
-		shutil.move('share/desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
-		shutil.move('share/cmdc', Globals.myCONF_DIR)
+		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
+		shutil.move('cmdc', Globals.myCONF_DIR)
 		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
 		os.chdir(Globals.myCONF_DIR)
 		shutil.rmtree('CMDC-master')
