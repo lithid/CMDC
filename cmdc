@@ -42,7 +42,6 @@ class Tools():
 		urllib.urlretrieve(zipurl, myfile)
 		zfile = zipfile.ZipFile(myfile)
 		for name in zfile.namelist():
-			print name
 			(dirname, filename) = os.path.split(name)
 			if not os.path.exists(dirname):
 				os.mkdir(dirname)
@@ -1622,6 +1621,9 @@ class AOSCompiler():
 
 	def menu_item_install_packages(self, widget):
 		InstallPackages().runInstall()
+
+	def update_cmdc_button(self, widget):
+		Setup().update_cmdc()
  
 	# Main program
 	def main(self):
@@ -1684,6 +1686,15 @@ class AOSCompiler():
 
 		toptable.attach(hbox, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+
+		if Setup().check_update():
+			update_button = gtk.Button()
+			update_button.set_label("Update!")
+			update_button.connect("clicked", self.update_cmdc_button)
+			update_button.show()
+			tooltip = gtk.Tooltips()
+			tooltip.set_tip(update_button, "Update is available, click to update.")
+			toptable.attach(update_button, 2, 3, 0, 1, xpadding=15, ypadding=0, xoptions=gtk.SHRINK, yoptions=gtk.EXPAND)
 
 		self.STATUS_FRAME.add(Globals.statusLab)
 		self.STATUS_FRAME.set_border_width(25)
@@ -1996,8 +2007,10 @@ class Setup():
 
 		return True
 
-	def update_cmc(self):
-		print "CyanogenMod Dev Center needs setup, doing that now."
+	def update_cmdc(self):
+		Q = Dialogs().QDial("Update CyanogenMod Dev Center", "This will update the CMDC, is it ok to proceed?\n\nNote: You will have to restart the app once this is complete.")
+		if not Q:
+			return
 		Tools().UnzipFile(Globals.myUpdateUrl, "update.zip", Globals.myCONF_DIR)
 		if not os.path.exists(Globals.myIMGS):
 			os.mkdir(Globals.myIMGS)
@@ -2020,12 +2033,14 @@ class Setup():
 			else:
 				print line
 
-		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
-		shutil.move('cmdc', Globals.myCONF_DIR)
-		shutil.move('ChangeLog', Globals.myCONF_DIR)
+		shutil.copy('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
+		shutil.copy('cmdc', Globals.myCONF_DIR)
+		shutil.copy('ChangeLog', Globals.myCONF_DIR)
 		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
 		os.chdir(Globals.myCONF_DIR)
 		shutil.rmtree('CMDC-master')
+		Dialogs().CDial(gtk.MESSAGE_INFO, "Update CyanogenMod Dev Center Complete!", "Thank you for using this tool.\n\n-Lithid")
+		exit(0)
 
 	def check_update(self):
 		try:
@@ -2036,17 +2051,17 @@ class Setup():
 			local = float(localfile[2].strip())
 
 			if local < remote:
-				return False
-			return True
+				return True
+			return False
 		except:
-			return True
+			return False
 
 if __name__ == "__main__":
 	Utils().chk_config()
 
 	S = Setup().is_cmc_setup()
 	if not S:
-		Setup().update_cmc()
+		Setup().update_cmdc()
 	
 	if not os.path.exists(Globals.myCONF):
 		Parser().write("branch", None)
