@@ -1616,7 +1616,7 @@ class AOSCompiler():
 	def menu_item_install_repo(self, widget):
 		InstallPackages().repo()
 
-	def menu_item_changelog(self, widget):
+	def view_changelog(self, widget):
 		Utils().viewChangelog()
 
 	def menu_item_install_packages(self, widget):
@@ -1688,13 +1688,22 @@ class AOSCompiler():
 		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 
 		if Setup().check_update():
+			update_hbox = gtk.HBox(False, 10)
 			update_button = gtk.Button()
-			update_button.set_label("Update!")
+			update_button.set_label("Update")
 			update_button.connect("clicked", self.update_cmdc_button)
 			update_button.show()
 			tooltip = gtk.Tooltips()
 			tooltip.set_tip(update_button, "Update is available, click to update.")
-			toptable.attach(update_button, 2, 3, 0, 1, xpadding=15, ypadding=0, xoptions=gtk.SHRINK, yoptions=gtk.EXPAND)
+			update_hbox.add(update_button)
+			changelog_button = gtk.Button()
+			changelog_button.set_label("Log")
+			changelog_button.connect("clicked", self.view_changelog)
+			changelog_button.show()
+			tooltip = gtk.Tooltips()
+			tooltip.set_tip(changelog_button, "Click here to view the ChangeLog")
+			update_hbox.add(changelog_button)
+			toptable.attach(update_hbox, 2, 3, 0, 1, xpadding=15, ypadding=0, xoptions=gtk.SHRINK, yoptions=gtk.EXPAND)
 
 		self.STATUS_FRAME.add(Globals.statusLab)
 		self.STATUS_FRAME.set_border_width(25)
@@ -1954,7 +1963,7 @@ class AOSCompiler():
 
 		menu_changelog = gtk.MenuItem("ChangeLog")
 		menu_bar_help.append(menu_changelog)
-		menu_changelog.connect("activate", self.menu_item_changelog)
+		menu_changelog.connect("activate", self.view_changelog)
 		menu_changelog.show()
 
 		separator = gtk.SeparatorMenuItem()
