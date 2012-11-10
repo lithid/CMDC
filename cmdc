@@ -1969,7 +1969,7 @@ class Setup():
 			dst_file = os.path.join(Globals.myIMGS, filepath)
 			shutil.move(src_file, dst_file)
 
-		if not os.path.exists('%s/.local/share/applications' % Globals.myHOME)
+		if not os.path.exists('%s/.local/share/applications' % Globals.myHOME):
 			os.mkdir('%s/.local/share/applications' % Globals.myHOME)
 		shutil.move('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
 		shutil.move('cmdc', Globals.myCONF_DIR)
