@@ -21,6 +21,7 @@ import commands
 import zipfile
 import shutil
 import fileinput
+from glob import glob
 
 MAIN_VBOX = gtk.VBox(False, 0)
 toptable = gtk.Table(1, 3, False)
@@ -1255,7 +1256,7 @@ class Compile():
 			return
 		CM = CyanogenMod()
 		Update().main("Compiling CyanogenMod")
-		CM().Compile()
+		CM.Compile()
 
 def chkInstalled(arg):
 
