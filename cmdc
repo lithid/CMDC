@@ -1630,6 +1630,12 @@ class AOSCompiler():
 
 	def menu_item_app_version(self, widget):
 		Setup().choose_app_version()
+
+	def menu_item_gerrit_start_repo(self, widget):
+		Gerrit().choose_repo_start()
+
+	def menu_item_gerrit_user(self, widget):
+		Gerrit().choose_user()
  
 	# Main program
 	def main(self):
@@ -1904,6 +1910,22 @@ class AOSCompiler():
 		menu_add_custom_device.connect("activate", self.menu_item_add_custom_device)
 		menu_add_custom_device.show()
 
+		menu_bar_gerrit = gtk.Menu()
+		gerrit_submenu = gtk.MenuItem("CM-Gerrit")
+		gerrit_submenu.set_submenu(menu_bar_gerrit)
+
+		menu_gerrit_start_repo = gtk.MenuItem("Start Repo")
+		menu_bar_gerrit.append(menu_gerrit_start_repo)
+		menu_gerrit_start_repo.connect("activate", self.menu_item_gerrit_start_repo)
+		menu_gerrit_start_repo.show()
+
+		menu_gerrit_user = gtk.MenuItem("Configure User")
+		menu_bar_gerrit.append(menu_gerrit_user)
+		menu_gerrit_user.connect("activate", self.menu_item_gerrit_user)
+		menu_gerrit_user.show()
+
+		menu_bar_file.append(gerrit_submenu)
+
 		menu_view_config = gtk.MenuItem("View Config")
 		menu_bar_file.append(menu_view_config)
 		menu_view_config.connect("activate", self.menu_item_view_config)
@@ -2015,6 +2037,89 @@ def main():
 	gtk.main()
 	return 0
 
+class Gerrit():
+	def choose_user(self):
+		title = "Choose CM-Gerrit User"
+		message = "Please Please define your user:"
+		dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK)
+		dialog.set_markup(title)
+		dialog.format_secondary_markup(message)
+		hbox = gtk.HBox(False, 10)
+		dialog.vbox.pack_start(hbox)
+		label = gtk.Label()
+		label.set_markup("User name:")
+		label.show()
+		entry = gtk.Entry()
+		entry.show()
+		hbox.add(label)
+		hbox.add(entry)
+		hbox.show()
+		q = dialog.run()
+		if q == gtk.RESPONSE_OK:
+			n = entry.get_text()
+			if not n:
+				return
+			cmd = "git config --global review.cyanogenmod.com.username \"%s\"" % n
+			os.system(cmd)
+		else:
+			Dialogs().CDial(gtk.MESSAGE_INFO, "Skipping this", "No changes have been made!")
+		dialog.destroy()
+
+	def choose_repo_start(self):
+		projectList = []
+		R = Parser().read("repo_path")
+		from xml.dom.minidom import parseString
+		file = open('%s/.repo/manifest.xml' % R,'r')
+		data = file.read()
+		file.close()
+		dom = parseString(data)
+		xml = dom.getElementsByTagName('project')
+		for e in xml:
+			projectList.append(e.getAttribute('path'))
+
+		dialog = gtk.Dialog("Choose project", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		dialog.set_size_request(500, 500)
+		dialog.set_resizable(False)
+
+		scroll = gtk.ScrolledWindow()
+		scroll.set_border_width(10)
+		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
+		dialog.vbox.pack_start(scroll, True, True, 0)
+		scroll.show()
+
+		table = gtk.Table(2, 1, False)
+
+		scroll.add_with_viewport(table)
+		table.show()
+
+		device = gtk.RadioButton(None, None)
+
+		button_count = 0
+		for radio in projectList:
+
+			button_count += 1
+			button = "button%s" % (button_count)
+
+			button = gtk.RadioButton(group=device, label="%s" % (radio))
+			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+			button.show()
+
+		r = dialog.run()
+		if r == gtk.RESPONSE_ACCEPT:
+			active = [r for r in device.get_group() if r.get_active()][0]
+			project = active.get_label()
+			P = "%s/%s" % (R, project)
+			if os.path.exists(P):
+				os.chdir(R)
+				Globals.TERM.set_background_saturation(0.3)
+				Globals.TERM.fork_command("bash")
+				Globals.TERM.feed_child("repo start cmdcBranch %s\n" % project)
+			else:
+				Dialogs().CDial(gtk.MESSAGE_ERROR, "Path not found!", "Path:\n%s\n\nThis path was not found, please make sure you setup the repo and its fully synced." % P)
+		else:
+			pass
+		dialog.destroy()
+
 class Setup():
 	def is_cmc_setup(self):
 		os.chdir(Globals.myCONF_DIR)
@@ -2096,9 +2201,6 @@ class Setup():
 			except:
 				pass
 
-		def callback_version(widget, data=None):
-			print "%s was toggled" % data
-
 		dialog = gtk.Dialog("Choose version", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 		dialog.set_size_request(260, 200)
 		dialog.set_resizable(False)
@@ -2110,7 +2212,6 @@ class Setup():
 		scroll.show()
 
 		table = gtk.Table(2, 1, False)
-		table.set_row_spacings(45)
 
 		scroll.add_with_viewport(table)
 		table.show()
@@ -2124,8 +2225,7 @@ class Setup():
 			button = "button%s" % (button_count)
 
 			button = gtk.RadioButton(group=device, label="%s" % (radio))
-			button.connect("toggled", callback_version, "%s" % (radio))
-			table.attach(button, 0, 1, 0, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
 			button.show()
 
 		r = dialog.run()
