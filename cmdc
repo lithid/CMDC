@@ -157,8 +157,10 @@ class Globals():
 	myFORUM_URL = ('http://forum.xda-developers.com/showthread.php?t=1415661')
 	myDONATE = ('http://forum.xda-developers.com/donatetome.php?u=2709018')
 	myREPO_TOOL_URL = ('https://dl-ssl.google.com/dl/googlesource/git-repo/repo')
-	myUpdateUrl = ('https://github.com/lithid/CMDC/archive/Stable.zip')
-	myChangeLogUrl = ('https://raw.github.com/lithid/CMDC/Stable/ChangeLog')
+	myUpdateUrlDev = ('https://github.com/lithid/CMDC/archive/master.zip')
+	myChangeLogUrlDev = ('https://raw.github.com/lithid/CMDC/master/ChangeLog')
+	myUpdateUrlStable = ('https://github.com/lithid/CMDC/archive/Stable.zip')
+	myChangeLogUrlStable = ('https://raw.github.com/lithid/CMDC/Stable/ChangeLog')
 	myChangeLogLocal = ('%s/ChangeLog' % myCONF_DIR)
 
 	# For dialogs
@@ -1432,6 +1434,8 @@ class Parser():
 			getWinX = config.get(title, 'win_x')
 			getWinY = config.get(title, 'win_y')
 			getBackground = config.get(title, 'background')
+			getChannel = config.get(title, 'channel')
+			getCheckUpdates = config.get(title, 'check_updates')
 
 		except:
 			getDevice = None
@@ -1447,6 +1451,8 @@ class Parser():
 			getWinW = None
 			getWinH = None
 			getBackground = None
+			getChannel = None
+			getCheckUpdates = None
 
 		config = ConfigParser.RawConfigParser()
 		config.add_section(title)
@@ -1527,6 +1533,20 @@ class Parser():
 			config.set(title, 'background', getBackground)
 		else:
 			config.set(title, 'background', None)
+
+		if arg == "channel":
+			config.set(title, "channel", value)
+		elif getChannel:
+			config.set(title, "channel", getChannel)
+		else:
+			config.set(title, "channel", "Stable")
+
+		if arg == "check_updates":
+			config.set(title, "check_updates", value)
+		elif getCheckUpdates:
+			config.set(title, "check_updates", getCheckUpdates)
+		else:
+			config.set(title, "check_updates", False)
 
 		with open(Globals.myCONF, 'wb') as configfile:
     			config.write(configfile)
@@ -1626,8 +1646,13 @@ class AOSCompiler():
 	def menu_item_install_packages(self, widget):
 		InstallPackages().runInstall()
 
-	def update_cmdc_button(self, widget):
-		Setup().update_cmdc(Globals.myUpdateUrl, 'CMDC-master')
+	def update_cmdc_stable_button(self, widget):
+		Parser().write('channel', 'Stable')
+		Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
+
+	def update_cmdc_dev_button(self, widget):
+		Parser().write('channel', 'Dev')
+		Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
 
 	def menu_item_app_version(self, widget):
 		Setup().choose_app_version()
@@ -1640,6 +1665,12 @@ class AOSCompiler():
 
 	def menu_item_gerrit_remove_patch(self, widget):
 		Gerrit().remove_repo_patch()
+
+	def menu_item_toggle_update(self, widget):
+		if widget.get_active():
+			Parser().write("check_updates", True)
+		else:
+			Parser().write("check_updates", False)
  
 	# Main program
 	def main(self):
@@ -1979,10 +2010,29 @@ class AOSCompiler():
 		menu_app_version.connect("activate",  self.menu_item_app_version)
 		menu_app_version.show()
 
-		menu_force_update = gtk.MenuItem("Forced Update")
-		menu_bar_edit.append(menu_force_update)
-		menu_force_update.connect("activate",  self.update_cmdc_button)
-		menu_force_update.show()
+		separator = gtk.SeparatorMenuItem()
+		menu_bar_edit.append(separator)
+		separator.show()
+
+		CU = Parser().read("check_updates")
+		menu_toggle_check_update = gtk.CheckMenuItem()
+		menu_toggle_check_update.set_label("Check Updates (Toggle)")
+		menu_toggle_check_update.connect("toggled", self.menu_item_toggle_update)
+		menu_bar_edit.append(menu_toggle_check_update)
+		if CU:
+			menu_toggle_check_update.set_active(True)
+		else:
+			menu_toggle_check_update.set_active(False)
+
+		menu_force_update_dev = gtk.MenuItem("Update Channel (Dev)")
+		menu_bar_edit.append(menu_force_update_dev)
+		menu_force_update_dev.connect("activate",  self.update_cmdc_dev_button)
+		menu_force_update_dev.show()
+
+		menu_force_update_stable = gtk.MenuItem("Update Channel (Stable)")
+		menu_bar_edit.append(menu_force_update_stable)
+		menu_force_update_stable.connect("activate",  self.update_cmdc_stable_button)
+		menu_force_update_stable.show()
 
 		# Help menu item
 		menu_bar_help = gtk.Menu()
@@ -2320,12 +2370,18 @@ class Setup():
 if __name__ == "__main__":
 	Utils().chk_config()
 
-	S = Setup().is_cmc_setup()
-	if not S:
-		Setup().update_cmdc(Globals.myUpdateUrl, 'CMDC-master')
-	
 	if not os.path.exists(Globals.myCONF):
 		Parser().write("branch", None)
+
+	S = Setup().is_cmc_setup()
+	if not S:
+		CU = Parser().read('check_updates')
+		if CU:
+			CH = Parser().read('channel')
+			if CH == "Dev":
+				Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
+			else:
+				Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
 
 	Parser().write("verbose", False)
 	if len(sys.argv) is 2:
