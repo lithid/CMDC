@@ -1596,7 +1596,6 @@ class AOSCompiler():
 
         def About(self, widget):
 		localfile = open(Globals.myChangeLogLocal, 'r').readlines()
-		localfile.close()
 		localversion = float(localfile[2].strip())
 		authors = ["lithid"]
                 dialog = gtk.AboutDialog()
