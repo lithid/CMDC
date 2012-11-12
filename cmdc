@@ -1956,7 +1956,7 @@ class AOSCompiler():
 		gerrit_submenu = gtk.MenuItem("CM-Gerrit")
 		gerrit_submenu.set_submenu(menu_bar_gerrit)
 
-		menu_gerrit_start_repo = gtk.MenuItem("Start Repo")
+		menu_gerrit_start_repo = gtk.MenuItem("Start Patch")
 		menu_bar_gerrit.append(menu_gerrit_start_repo)
 		menu_gerrit_start_repo.connect("activate", self.menu_item_gerrit_start_repo)
 		menu_gerrit_start_repo.show()
