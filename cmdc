@@ -144,6 +144,7 @@ class Globals():
 	RunImg = ('%s/run.png') % (myIMGS)
 	DeviceImg = ('%s/device.png') % (myIMGS)
 	myRepoPatchFile = ('%s/cm-gerrit_patches') % (myCONF_DIR)
+	myCustDeviceFile = ('%s/cust_devices') % (myCONF_DIR)
 	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
 	myTermFont = ('Ubuntu Mono 9')
@@ -598,7 +599,20 @@ class Utils():
 		if VERBOSE == True:
 			print "##########"
 			print "# Reading URL: %s" % BR
-		for lines in filehandle.readlines():
+		DeviceList = []
+
+		if os.path.exists(Globals.myCustDeviceFile):
+			f = open(Globals.myCustDeviceFile, "r")
+			x = f.readlines()
+			f.close()
+			for line in x:
+				l = line.strip()
+				DeviceList.append("cm_%s" % l)
+
+		for line in filehandle.readlines():
+			DeviceList.append(line)
+			
+		for lines in DeviceList:
 
 			if not "#" in lines:
 				line = lines.strip()
@@ -715,19 +729,30 @@ class Utils():
 		table.show()
 		q = dialog.run()
 		if q == gtk.RESPONSE_OK:
+			print "Here"
 			n = entry.get_text()
 			m = entry1.get_text()
 			u = entry2.get_text()
 			b = entry3.get_text()
-			if not n or m or u or b:
+			if n == "" or m == "" or u == "" or b== "" :
+				print n, m, u, b
 				return
 			r = Parser().read("repo_path")
 			os.chdir(r)
 			manu_path = "%s/device/%s" % (r,m)
-			if not os.path.exists(manu_path):
-				os.mkdir(manu_path)
+			try:
+				if not os.path.exists(manu_path):
+					os.mkdir(manu_path)
+			except OSError:
+				Dialogs().CDial(gtk.MESSAGE_ERROR, "No Path Found", "Can't find all the paths, are you sure the repo has been synced?")
+				return
 			if os.path.exists("%s/%s" % (manu_path, n)):
 				shutil.rmtree("%s/%s" % (manu_path, n))
+			if not os.path.exists(Globals.myCustDeviceFile):
+				open(Globals.myCustDeviceFile,"w").close()
+			f = open(Globals.myCustDeviceFile,"a")
+			f.write("%s\n" % n)
+			f.close()
 			os.chdir(manu_path)
 			Globals.TERM.set_background_saturation(0.3)
 			Globals.TERM.fork_command('bash')
@@ -1571,6 +1596,7 @@ class AOSCompiler():
 
         def About(self, widget):
 		localfile = open(Globals.myChangeLogLocal, 'r').readlines()
+		localfile.close()
 		localversion = float(localfile[2].strip())
 		authors = ["lithid"]
                 dialog = gtk.AboutDialog()
