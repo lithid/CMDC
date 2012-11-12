@@ -1597,11 +1597,12 @@ class AOSCompiler():
         def About(self, widget):
 		localfile = open(Globals.myChangeLogLocal, 'r').readlines()
 		localversion = float(localfile[2].strip())
+		chan = Parser().read("channel")
 		authors = ["lithid"]
                 dialog = gtk.AboutDialog()
                 dialog.set_name("CyanogenMod Dev Center")
 		dialog.set_program_name("CyanogenMod Dev Center")
-                dialog.set_version("v%s" % localversion)
+                dialog.set_version("v%s\n(%s)" % (localversion, chan))
 		dialog.set_authors(authors)
                 dialog.set_comments(Globals.about_info)
                 dialog.set_copyright("CyanogenMod Dev Center - 2012")
