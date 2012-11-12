@@ -1142,8 +1142,14 @@ class Utils():
 
 		dialog.vbox.pack_start(scroll, True, True, 0)
 
+		CH = Parser().read('channel')
+		if CH == "Dev":
+			FIN = Globals.myChangeLogUrlDev
+		else:
+			FIN = Globals.myChangeLogUrlStable
+
 		try:
-			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).read()
+			urlfile = urllib2.urlopen(FIN).read()
 			textbuffer.set_text(urlfile)
 		except:
 			Dialogs().CDial(self.DIALOG_ERROR, "Can't read Changelog", "Please check your internet connection and try again.")
