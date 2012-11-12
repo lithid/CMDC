@@ -1627,27 +1627,6 @@ class AOSCompiler():
 		Parser().write(self.KEY_WIN_Y, y)
 		gtk.main_quit()
 
-	def on_key_press(self, widget, data=None):
-		i = gtk.gdk.keyval_name(data.keyval)
-		if i == "v" and data.state & gtk.gdk.CONTROL_MASK:
-			Utils().ViewConfig()
-		elif i == "a" and data.state & gtk.gdk.CONTROL_MASK:
-			Utils().start_adb()
-		elif i == "m" and data.state & gtk.gdk.CONTROL_MASK:
-			Utils().ResetTerm()
-		elif i == "s" and data.state & gtk.gdk.CONTROL_MASK:
-			Sync().run()
-		elif i == "t" and data.state & gtk.gdk.CONTROL_MASK:
-			toggle_term_btn()
-		elif i == "b" and data.state & gtk.gdk.CONTROL_MASK:
-			Compile().run()
-		elif i == "r" and data.state & gtk.gdk.CONTROL_MASK:
-			Utils().choose_repo_path()
-		elif  i == "Escape":
-			self.main_quit(None, None)
-		else:
-			pass
-
 	def menu_item_open_build_folder(self, widget):
 		Utils().openBuildFolder()
 
@@ -1716,10 +1695,12 @@ class AOSCompiler():
 		y = int(y)
 		Globals.MAIN_WIN.move(x, y)
 		Globals.MAIN_WIN.connect("delete_event", self.main_quit)
-		Globals.MAIN_WIN.connect("key_press_event", self.on_key_press)
 		Globals.MAIN_WIN.set_events(gtk.gdk.KEY_PRESS_MASK)
 		Globals.MAIN_WIN.set_events(gtk.gdk.CONTROL_MASK)
 		Globals.MAIN_WIN.set_resizable(False)
+
+		agr = gtk.AccelGroup()
+		Globals.MAIN_WIN.add_accel_group(agr)
 
 		toptable.show()
 		hbox = gtk.HBox(False, 10)
@@ -1968,7 +1949,9 @@ class AOSCompiler():
 		file_menu = gtk.MenuItem("File")
 		file_menu.set_submenu(menu_bar_file)
 
-		menu_open_build_folder = gtk.MenuItem("Open Build Folder")
+		menu_open_build_folder = gtk.MenuItem("Open Build Folder", agr)
+		key, mod = gtk.accelerator_parse("<Control>O")
+		menu_open_build_folder.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
 		menu_bar_file.append(menu_open_build_folder)
 		menu_open_build_folder.connect("activate", self.menu_item_open_build_folder)
 		menu_open_build_folder.show()
@@ -1999,7 +1982,9 @@ class AOSCompiler():
 
 		menu_bar_file.append(gerrit_submenu)
 
-		menu_view_config = gtk.MenuItem("View Config")
+		menu_view_config = gtk.MenuItem("View Config", agr)
+		key, mod = gtk.accelerator_parse("<Control>V")
+		menu_view_config.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
 		menu_bar_file.append(menu_view_config)
 		menu_view_config.connect("activate", self.menu_item_view_config)
 		menu_view_config.show()
@@ -2008,7 +1993,9 @@ class AOSCompiler():
 		menu_bar_file.append(separator)
 		separator.show()
 
-		menu_close = gtk.MenuItem("Close")
+		menu_close = gtk.MenuItem("Quit", agr)
+		key, mod = gtk.accelerator_parse("<Control>Q")
+		menu_close.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
 		menu_bar_file.append(menu_close)
 		menu_close.connect("activate",  self.main_quit)
 		menu_close.show()
@@ -2095,7 +2082,9 @@ class AOSCompiler():
 		menu_bar_help.append(separator)
 		separator.show()
 
-		menu_about = gtk.MenuItem("About")
+		menu_about = gtk.MenuItem("About", agr)
+		key, mod = gtk.accelerator_parse("<Control>A")
+		menu_about.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
 		menu_bar_help.append(menu_about)
 		menu_about.connect("activate", self.About)
 		menu_about.show()
