@@ -1734,7 +1734,8 @@ class AOSCompiler():
 		toptable.attach(hbox, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 
-		if Setup().check_update():
+		CU = Parser().read('check_updates')
+		if Setup().check_update() and CU:
 			update_hbox = gtk.HBox(False, 10)
 			update_button = gtk.Button()
 			update_button.set_label("Update")
@@ -2375,13 +2376,11 @@ if __name__ == "__main__":
 
 	S = Setup().is_cmc_setup()
 	if not S:
-		CU = Parser().read('check_updates')
-		if CU:
-			CH = Parser().read('channel')
-			if CH == "Dev":
-				Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
-			else:
-				Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
+		CH = Parser().read('channel')
+		if CH == "Dev":
+			Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
+		else:
+			Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
 
 	Parser().write("verbose", False)
 	if len(sys.argv) is 2:
