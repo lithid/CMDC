@@ -172,7 +172,6 @@ class Globals():
 	KeyDevice = 'device'
 	KeyWinX = 'win_x'
 	KeyWinY = 'win_y'
-	KeyTermToggle = 'term_toggle'
 
 	PROCESSORS = Tools().processor()
 
@@ -228,13 +227,10 @@ class Globals():
 	build_appLab = gtk.Label()
 	buildFrameLab = gtk.Label()
 	runFrameLab = gtk.Label()
-	toggleTermLab = gtk.Label()
 	toggleAdbLab = gtk.Label()
 	toggleBashLab = gtk.Label()
 	resetLab = gtk.Label()
 	contactFrameLab = gtk.Label()
-	statusFrameLab = gtk.Label()
-	statusLab = gtk.Label()
 	aoscTitleLab = gtk.Label()
 	checkCompile = gtk.CheckButton()
 	checkSync = gtk.CheckButton()
@@ -382,7 +378,6 @@ class Utils():
 	TOOLS_COMBO_LIST = Globals.ToolsComboList
 	KEY_DEVICE = Globals.KeyDevice
 	KEY_REPO_PATH = Globals.KeyRepoPath
-	KEY_TERM_TOGGLE = Globals.KeyTermToggle
 	KEY_WIN_X = Globals.KeyWinX
 	KEY_WIN_Y = Globals.KeyWinY
 	STR_USER_CONFIRM = Globals.StrUserConfirm
@@ -393,7 +388,6 @@ class Utils():
 	DIALOG_ERROR = Globals.DialogError
 	TARGET_OUT = Globals.TargetOut
 	TERM_FRAME_TABLE = Globals.TermFrameTable
-	STATUS_FRAME = Globals.StatusFrame
 
 	def is_adb_running(self):
 		running = False
@@ -509,7 +503,7 @@ class Utils():
 
 		dialog.run()
 		dialog.destroy()
-		Update().main(None)
+		Update().main()
 
 	def aboutRom(self, obj):
 		CM = CyanogenMod()
@@ -669,13 +663,12 @@ class Utils():
 		Globals.checkAdbToggle.set_active(False)
 		Globals.TERM.set_background_saturation(1.0)
 		Globals.TERM.fork_command('clear')
-		Update().main(None)
 
 	def choose_repo_path(self):
 		RESPONSE = FileChooser().getFolder()
 		if RESPONSE is not None:
 			Parser().write("repo_path", RESPONSE)
-			Update().main(None)
+			Update().main()
 
 	def cust_background_dialog(self):
 		IMG = FileChooser().getFile()
@@ -929,7 +922,6 @@ class Utils():
 
 	def run_local_shell(self):
 		self.ResetTerm()
-		Update().main("Running bash shell")
 		Globals.TERM.set_background_saturation(0.3)
 		Globals.TERM.fork_command('bash')
 
@@ -987,7 +979,7 @@ class Utils():
 							Parser().write("repo_path", Globals.myDEF_REPO_PATH)
 						shutil.rmtree(x)
 						dialog.destroy()
-						Update().main(None)
+						Update().main()
 			elif REPO_NAME == "None":
 				pass
 			else:
@@ -996,7 +988,7 @@ class Utils():
 						Parser().write("repo_path", Globals.myDEF_REPO_PATH)
 					shutil.rmtree(REPO_NAME)
 					dialog.destroy()
-					Update().main(None)
+					Update().main()
 
 		dialog = gtk.Dialog("Remove installed repos", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 		dialog.set_size_request(500, 400)
@@ -1038,16 +1030,16 @@ class Utils():
 	def compile_combo_change(self, w):
 		value = int(w.get_active_text())
 		Parser().write("make_jobs", value)
-		Update().main(None)
+		Update().main()
 
 	def sync_combo_change(self, w):
 		value = int(w.get_active_text())
 		Parser().write("sync_jobs", value)
-		Update().main(None)
+		Update().main()
 
 	def device_button(self, event):
 		self.Devices()
-		Update().main(None)
+		Update().main()
 
 	def run_button(self, event):
 		isit = None
@@ -1089,7 +1081,6 @@ class Utils():
 		if Utils().is_adb_running() == True:
 			(x, y) = self.choose_adb()
 			if x is not None:
-				Update().main("Running adb for %ss" % y)
 				Globals.TERM.set_background_saturation(0.3)
 				Globals.TERM.fork_command('bash')
 				if x is "A":
@@ -1103,16 +1094,6 @@ class Utils():
 			self.ResetTerm()
 			return
 
-	def toggle_term_btn(self):
-		if Globals.checkTermToggle.get_active() == True:
-			Parser().write(KEY_TERM_TOGGLE, False)
-			Globals.checkTermToggle.set_active(False)
-		else:
-			Parser().write(KEY_TERM_TOGGLE, True)
-			Globals.checkTermToggle.set_active(True)
-
-		Update().widgets()
-
 	def reset_button(self, widget):
 		if Globals.checkBashToggle.get_active() == True:
 			Globals.checkBashToggle.set_active(False)
@@ -1122,34 +1103,15 @@ class Utils():
 
 	def checked_bash_toggle(self, widget):
 		if Globals.checkBashToggle.get_active() == True:
-			if Globals.checkTermToggle.get_active() == False:
-				Globals.checkTermToggle.set_active(True)
-				Parser().write(self.KEY_TERM_TOGGLE, True)
-				Update().widgets()
-
 			self.run_local_shell()
 		else:
 			self.ResetTerm()
 
 	def checked_adb_toggle(self, widget):
 		if Globals.checkAdbToggle.get_active() == True:
-			if Globals.checkTermToggle.get_active() == False:	
-				Globals.checkTermToggle.set_active(True)
-				Parser().write(self.KEY_TERM_TOGGLE, True)
-				Update().widgets()
-				self.start_adb()
-			else:
-				self.start_adb()
+			self.start_adb()
 		else:
 			self.ResetTerm()
-
-	def checked_term_toggle(self, widget):
-		if Globals.checkTermToggle.get_active() == True:
-			Parser().write(self.KEY_TERM_TOGGLE, True)
-		else:
-			Parser().write(self.KEY_TERM_TOGGLE, False)
-
-		Update().widgets()
 
 	def viewChangelog(self):
 		dialog = gtk.Dialog("Change background", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -1185,9 +1147,7 @@ class Utils():
 
 class Update():
 
-	KEY_TERM_TOGGLE = Globals.KeyTermToggle
 	TERM_FRAME_TABLE = Globals.TermFrameTable
-	STATUS_FRAME = Globals.StatusFrame
 
 	def background(self):
 		if Parser().read("background") is None:
@@ -1197,15 +1157,11 @@ class Update():
 
 		Globals.TERM.set_background_image_file(IMG)
 
-	def main(self, status):
+	def main(self):
 		b = Parser().read("branch")
 		d = Parser().read("device")
 		p = Parser().read("repo_path")
 		r = "CyanogenMod Dev Center"
-		if status == None:
-			stat = "Waiting for command..."
-		else:
-			stat = status
 		(x, y) = Globals.MAIN_WIN.get_position()
 		here = int(x)
 		there = int(y)
@@ -1220,9 +1176,6 @@ class Update():
 		Globals.makeLab.set_markup("<small>Make: <b>%s</b></small>" % Parser().read("make_jobs"))
 		Globals.compileLab.set_markup("<small>Compile</small>")
 		Globals.runFrameLab.set_markup("<small>Run options</small>")
-		Globals.statusFrameLab.set_markup("<small>Status: <small><span color=\"red\">Check terminal for status output to see if jobs are complete.</span></small></small>")
-		Globals.statusLab.set_markup("<span font=\"25\" variant=\"normal\">%s\n</span>" % stat)
-		Globals.toggleTermLab.set_markup("<small>Terminal</small>")
 		Globals.toggleAdbLab.set_markup("<small>Adb log</small>")
 		Globals.toggleBashLab.set_markup("<small>Bash shell</small>")
 		Globals.resetLab.set_markup("<small>Stop/reset</small>")
@@ -1241,17 +1194,6 @@ class Update():
 		(x, y) = Globals.MAIN_WIN.get_position()
 		x = int(x)
 		y = int(y)
-
-		if Parser().read(self.KEY_TERM_TOGGLE) == True:
-			self.TERM_FRAME_TABLE.show()
-			self.STATUS_FRAME.hide()
-			Parser().write(self.KEY_TERM_TOGGLE, True)
-
-		if Parser().read(self.KEY_TERM_TOGGLE) == False:
-			self.TERM_FRAME_TABLE.hide()
-			self.STATUS_FRAME.show()
-			Parser().write(self.KEY_TERM_TOGGLE, False)
-
 		Globals.MAIN_WIN.move(x, y)
 
 class Sync():
@@ -1259,17 +1201,14 @@ class Sync():
 		repo = Tools().which("repo")
 		if not repo:
 			Dialogs().CDial(gtk.MESSAGE_INFO, "Repo is not installed", "You need to install repo to continue.")
-			Update().main(None)
 			return False
 		b = Parser().read("branch")
 		if not b:
 			Dialogs().CDial(gtk.MESSAGE_INFO, "Device is not choosen", "You need a device to continue.")
-			Update().main(None)
 			return False
 		r = Parser().read("repo_path")
 		url = RepoHelper().getBranchUrl("init")
 		j = Parser().read("sync_jobs")
-		Update().main("Repo syncing with %s jobs for %s" % (j, b))
 		if not os.path.exists(r):
 			os.mkdir(r)
 		Globals.TERM.feed_child("cd \"%s\"\n" % r)
@@ -1289,7 +1228,6 @@ class Compile():
 				Globals.TERM.fork_command('clear')
 			return
 		CM = CyanogenMod()
-		Update().main("Compiling CyanogenMod")
 		CM.Compile()
 
 def chkInstalled(arg):
@@ -1359,7 +1297,6 @@ class InstallPackages():
 	def repo(self):
 		q = Dialogs().QDial("Install repo script", "Are you sure you want to install the repo script?\n\nThis will ask for root!")
 		if q == True:
-			Update().main("Installing repo...")
 			Globals.TERM.set_background_saturation(0.3)
 			Globals.TERM.fork_command("bash")
 			Globals.TERM.feed_child("clear\n")
@@ -1427,7 +1364,7 @@ class InstallPackages():
 
 class Parser():
 
-	title = "CMCompiler"
+	title = "CMDC"
 
 	def read(self, arg):
 		title = self.title
@@ -1461,7 +1398,6 @@ class Parser():
 			getMakeJobs = config.get(title, 'make_jobs')
 			getManuf = config.get(title, 'manuf')
 			getVerbose = config.get(title, 'verbose')
-			getTermToggle = config.get(title, 'term_toggle')
 			getWinX = config.get(title, 'win_x')
 			getWinY = config.get(title, 'win_y')
 			getBackground = config.get(title, 'background')
@@ -1476,7 +1412,6 @@ class Parser():
 			getMakeJobs = None
 			getManuf = None
 			getVerbose = None
-			getTermToggle = None
 			getWinX = None
 			getWinY = None
 			getWinW = None
@@ -1530,13 +1465,6 @@ class Parser():
 		else:
 			config.set(title, 'manuf', None)
 
-		if arg == "term_toggle":
-			config.set(title, 'term_toggle', value)
-		elif getTermToggle:
-			config.set(title, 'term_toggle', getTermToggle)
-		else:
-			config.set(title, 'term_toggle', True)
-
 		if arg == "win_x":
 			config.set(title, 'win_x', value)
 		elif getWinX:
@@ -1587,10 +1515,8 @@ class AOSCompiler():
 	ASK_CONFIRM = Globals.AskConfirm
 	KEY_REPO_PATH = Globals.KeyRepoPath
 	TERM_FRAME_TABLE = Globals.TermFrameTable
-	STATUS_FRAME = Globals.StatusFrame
 	KEY_WIN_X = Globals.KeyWinX
 	KEY_WIN_Y = Globals.KeyWinY
-	KEY_TERM_TOGGLE = Globals.KeyTermToggle
 	LINK_LIST = Globals.LinkList
 	TERM_FRAME_TABLE = Globals.TermFrameTable
 
@@ -1717,17 +1643,6 @@ class AOSCompiler():
 		resetFrame.add(Globals.resetBtn)
 		hbox.add(resetFrame)
 
-		toggleTermFrame = gtk.Frame()
-		toggleTermFrame.set_label_widget(Globals.toggleTermLab)
-		if Parser().read(self.KEY_TERM_TOGGLE) == True:
-			Globals.checkTermToggle.set_active(True)
-		else:
-			Globals.checkTermToggle.set_active(False)
-		Globals.checkTermToggle.connect("clicked", Utils().checked_term_toggle)
-		Globals.checkTermToggle.show()
-		toggleTermFrame.add(Globals.checkTermToggle)
-		hbox.add(toggleTermFrame)
-
 		toggleAdbFrame = gtk.Frame()
 		toggleAdbFrame.set_label_widget(Globals.toggleAdbLab)
 		Globals.checkAdbToggle.set_active(False)
@@ -1765,10 +1680,6 @@ class AOSCompiler():
 			tooltip.set_tip(changelog_button, "Click here to view the ChangeLog")
 			update_hbox.add(changelog_button)
 			toptable.attach(update_hbox, 2, 3, 0, 1, xpadding=15, ypadding=0, xoptions=gtk.SHRINK, yoptions=gtk.EXPAND)
-
-		self.STATUS_FRAME.add(Globals.statusLab)
-		self.STATUS_FRAME.set_border_width(25)
-		self.STATUS_FRAME.set_label_widget(Globals.statusFrameLab)
 
 		TERM_FRAME = gtk.Frame()
 		TERM_FRAME.set_size_request(1058, 390)
@@ -2100,7 +2011,6 @@ class AOSCompiler():
 		MAIN_VBOX.pack_start(menu_bar, False, False, 0)
 
 		MAIN_VBOX.pack_start(toptable, False, False, 0)
-		MAIN_VBOX.pack_start(self.STATUS_FRAME, True, True, 0)
 		MAIN_VBOX.pack_start(self.TERM_FRAME_TABLE, True, True, 0)
 		MAIN_VBOX.pack_start(opthbox, True, True, 0)
 		MAIN_VBOX.pack_start(tableB, True, True, 0)
@@ -2111,7 +2021,7 @@ class AOSCompiler():
 		Globals.MAIN_WIN.add(MAIN_VBOX)
 		Globals.MAIN_WIN.show_all()
 		Update().widgets()
-		Update().main(None)
+		Update().main()
 		gtk.main()
 
 def main():
