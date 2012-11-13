@@ -427,7 +427,7 @@ class Utils():
 			f = open(Globals.myCONF)
 			count = 0
 			for line in f:
-				if "CMCompiler" in line:
+				if "CMDC" in line:
 					pass
 				elif line == '\n':
 					pass
