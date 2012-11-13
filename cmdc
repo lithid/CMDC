@@ -211,7 +211,6 @@ class Globals():
 	branchBtn = gtk.Button()
 	aboutRomBtn = gtk.Button()
 	resetBtn = gtk.Button()
-	KEY_BIND_INFO = gtk.Label()
 	runLab = gtk.Label()
 	romLab = gtk.Label()
 	LinkContact = gtk.Label()
@@ -1184,7 +1183,6 @@ class Update():
 		Globals.syncLab.set_markup("<small>Sync</small>")
 		Globals.clobberLab.set_markup("<small>Clobber</small>")
 		Globals.build_appLab.set_markup("<small><small>Build specific <b>app/binary</b> here. :: <b>enter</b> ::</small></small>")
-		Globals.KEY_BIND_INFO.set_markup("<small><small><small>Left control + [<b>v</b>:View config | <b>a</b>:Start adb | <b>m</b>:Start/stop | <b>t</b>:Toggle Term | <b>s</b>:Sync | <b>b</b>:build/compile | <b>r</b>:Repo path | <b>esc</b>:Quit]</small></small></small>")
 		if not os.path.exists(p):
 			Dialogs().CDial(gtk.MESSAGE_ERROR, "No Folder Found!", "Path: %s\n\nDoes not exist and it needs to to continue." % p)
 
@@ -1688,7 +1686,6 @@ class AOSCompiler():
 		self.TERM_FRAME_TABLE.attach(TERM_FRAME, 0, 1, 0, 1, xpadding=10)
 		self.TERM_FRAME_TABLE.hide()
 
-		Globals.KEY_BIND_INFO.show()
 		Globals.aoscTitleLab.show()
 
 		Globals.romLab.show()
@@ -2014,7 +2011,6 @@ class AOSCompiler():
 		MAIN_VBOX.pack_start(self.TERM_FRAME_TABLE, True, True, 0)
 		MAIN_VBOX.pack_start(opthbox, True, True, 0)
 		MAIN_VBOX.pack_start(tableB, True, True, 0)
-		MAIN_VBOX.pack_start(Globals.KEY_BIND_INFO, False, False, 10)
 
 		Update().background()
 
