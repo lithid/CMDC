@@ -1308,7 +1308,7 @@ class InstallPackages():
 
 		L = []
 
-		if version == "12.10":
+		if version == "12.10" or version == "14":
 			pak = "libwxgtk2.8-dev"
 		else:
 			pak = "libwxgtk2.6-dev"
@@ -1320,19 +1320,19 @@ class InstallPackages():
 
 		check = (sys.maxsize > 2**32)
 		if check is True:
-			if version == "10.04":
+			if version == "10.04" or version == "10":
 				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline5-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
 				for x in P:
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-			elif version == "11.04":
+			elif version == "11.04" or version == "11":
 				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
 				for x in P:
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-			elif version == "12.10" or version == "12.04" or version == "11.10":
+			elif version == "12.10" or version == "12.04" or version == "11.10" or version == "14" or version == "13" or version == "14":
 				P = ["g++-multilib", "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev"]
 				for x in P:
 					i = chkInstalled(x)
@@ -1354,11 +1354,13 @@ class InstallPackages():
 
 	def runInstall(self):
 		D = getLinux("Distro")
-		if D == "Ubuntu":
+		V = getLinux("Version")
+		N = getLinux("Name")
+		if D == "Ubuntu" or D == "LinuxMint":
 			V = getLinux("Version")
 			InstallPackages().Ubuntu(V)
 		else:
-			Dialogs().CDial(gtk.MESSAGE_WARNING, "Linux Distro", "Sorry, we couldn't detect your linux distro. File a bug report with this info:\n\n<b>Distro: </b>%s\n<b>Version: </b>%s\n<b>Name: </b>%s\n" % (plat_d, plat_v, plat_n))
+			Dialogs().CDial(gtk.MESSAGE_WARNING, "Linux Distro", "Sorry, we couldn't detect your linux distro. File a bug report with this info:\n\n<b>Distro: </b>%s\n<b>Version: </b>%s\n<b>Name: </b>%s\n" % (D, V, N))
 
 class Parser():
 
