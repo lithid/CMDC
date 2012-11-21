@@ -147,7 +147,7 @@ class Globals():
 	myCustDeviceFile = ('%s/cust_devices') % (myCONF_DIR)
 	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
-	myTermFont = ('Ubuntu Mono 9')
+	myTermFont = ('Monospace 9')
 	myFileList = [myICON, myTermWall, RunImg, DeviceImg]
 
 	# Strings
@@ -1332,7 +1332,7 @@ class InstallPackages():
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-			elif version == "12.10" or version == "12.04" or version == "11.10" or version == "14" or version == "13" or version == "14":
+			elif version == "12.10" or version == "12.04" or version == "11.10" or version == "14" or version == "13" or version == "14" or version == "0.2":
 				P = ["g++-multilib", "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev"]
 				for x in P:
 					i = chkInstalled(x)
@@ -1353,10 +1353,11 @@ class InstallPackages():
 				return
 
 	def runInstall(self):
-		D = getLinux("Distro")
-		V = getLinux("Version")
-		N = getLinux("Name")
-		if D == "Ubuntu" or D == "LinuxMint":
+		D = getLinux("Distro").strip()
+		V = getLinux("Version").strip()
+		N = getLinux("Name").strip()
+		print D
+		if D == "Ubuntu" or D == "LinuxMint" or D == "\"elementary OS\"":
 			V = getLinux("Version")
 			InstallPackages().Ubuntu(V)
 		else:
