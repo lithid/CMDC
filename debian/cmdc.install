@@ -1,0 +1,3 @@
+cmdc usr/bin/
+desktop/* usr/share/applications/
+images/cmdc-icon.png usr/share/icons/hicolor/64x64/apps/

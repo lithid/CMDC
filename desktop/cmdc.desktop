@@ -6,6 +6,6 @@ GenericName=CyanogenMod Dev Center
 Comment=Develop tool for CyanogenMod
 Exec=
 Terminal=false
-Icon=
+Icon=cmdc-icon
 Type=Application
 Categories=GTK;Development;
