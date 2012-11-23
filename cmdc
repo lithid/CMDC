@@ -129,6 +129,7 @@ class Globals():
 	myHOME = (os.environ['HOME'])
 	myGIT_CONF = ('%s/.gitconfig') % (myHOME)
 	myCONF_DIR = ('%s/.cmdc') % (myHOME)
+	myDATA_DIR = ('/usr/share/cmdc/')
 	myCONF = ('%s/cmdc.conf') % (myCONF_DIR)
 	myCONFIRM = ('%s/ask.confim') % (myCONF_DIR)
 	myREPO_CONF = ('%s/repo_list') % (myCONF_DIR)
@@ -137,8 +138,8 @@ class Globals():
 
 	# Resources
 	myMainTitle = ('CyanogenMod Dev Center')
-	myIMGS = ('%s/images') % (myCONF_DIR)
-	myICON = ('%s/cmdc-icon.png') % (myIMGS)
+	myIMGS = ('%s/images') % (myDATA_DIR)
+	myICON = ('/usr/share/icons/hicolor/64x64/apps/cmdc-icon.png')
 	myTermWall = ('%s/termwall.jpg') % (myIMGS)
 	myTHEME = ('%s/theme/') % (myIMGS)
 	RunImg = ('%s/run.png') % (myIMGS)
@@ -158,11 +159,7 @@ class Globals():
 	myFORUM_URL = ('http://forum.xda-developers.com/showthread.php?t=1415661')
 	myDONATE = ('http://forum.xda-developers.com/donatetome.php?u=2709018')
 	myREPO_TOOL_URL = ('https://dl-ssl.google.com/dl/googlesource/git-repo/repo')
-	myUpdateUrlDev = ('https://github.com/lithid/CMDC/archive/master.zip')
-	myChangeLogUrlDev = ('https://raw.github.com/lithid/CMDC/master/ChangeLog')
-	myUpdateUrlStable = ('https://github.com/lithid/CMDC/archive/Stable.zip')
-	myChangeLogUrlStable = ('https://raw.github.com/lithid/CMDC/Stable/ChangeLog')
-	myChangeLogLocal = ('%s/ChangeLog' % myCONF_DIR)
+	myChangeLogUrlStable = ('https://raw.github.com/lithid/CMDC/master/debian/changelog')
 
 	# For dialogs
 	DialogError = gtk.MESSAGE_ERROR
@@ -1128,11 +1125,7 @@ class Utils():
 
 		dialog.vbox.pack_start(scroll, True, True, 0)
 
-		CH = Parser().read('channel')
-		if CH == "Dev":
-			FIN = Globals.myChangeLogUrlDev
-		else:
-			FIN = Globals.myChangeLogUrlStable
+		FIN = Globals.myChangeLogUrlStable
 
 		try:
 			urlfile = urllib2.urlopen(FIN).read()
@@ -1402,8 +1395,6 @@ class Parser():
 			getWinX = config.get(title, 'win_x')
 			getWinY = config.get(title, 'win_y')
 			getBackground = config.get(title, 'background')
-			getChannel = config.get(title, 'channel')
-			getCheckUpdates = config.get(title, 'check_updates')
 
 		except:
 			getDevice = None
@@ -1418,8 +1409,6 @@ class Parser():
 			getWinW = None
 			getWinH = None
 			getBackground = None
-			getChannel = None
-			getCheckUpdates = None
 
 		config = ConfigParser.RawConfigParser()
 		config.add_section(title)
@@ -1493,20 +1482,6 @@ class Parser():
 			config.set(title, 'background', getBackground)
 		else:
 			config.set(title, 'background', None)
-
-		if arg == "channel":
-			config.set(title, "channel", value)
-		elif getChannel:
-			config.set(title, "channel", getChannel)
-		else:
-			config.set(title, "channel", "Stable")
-
-		if arg == "check_updates":
-			config.set(title, "check_updates", value)
-		elif getCheckUpdates:
-			config.set(title, "check_updates", getCheckUpdates)
-		else:
-			config.set(title, "check_updates", False)
 
 		with open(Globals.myCONF, 'wb') as configfile:
     			config.write(configfile)
@@ -1584,17 +1559,6 @@ class AOSCompiler():
 	def menu_item_install_packages(self, widget):
 		InstallPackages().runInstall()
 
-	def update_cmdc_stable_button(self, widget):
-		Parser().write('channel', 'Stable')
-		Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
-
-	def update_cmdc_dev_button(self, widget):
-		Parser().write('channel', 'Dev')
-		Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
-
-	def menu_item_app_version(self, widget):
-		Setup().choose_app_version()
-
 	def menu_item_gerrit_start_repo(self, widget):
 		Gerrit().choose_repo_start()
 
@@ -1603,12 +1567,6 @@ class AOSCompiler():
 
 	def menu_item_gerrit_remove_patch(self, widget):
 		Gerrit().remove_repo_patch()
-
-	def menu_item_toggle_update(self, widget):
-		if widget.get_active():
-			Parser().write("check_updates", True)
-		else:
-			Parser().write("check_updates", False)
  
 	# Main program
 	def main(self):
@@ -1662,25 +1620,6 @@ class AOSCompiler():
 
 		toptable.attach(hbox, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-
-		CU = Parser().read('check_updates')
-		if Setup().check_update() and CU:
-			update_hbox = gtk.HBox(False, 10)
-			update_button = gtk.Button()
-			update_button.set_label("Update")
-			update_button.connect("clicked", self.update_cmdc_button)
-			update_button.show()
-			tooltip = gtk.Tooltips()
-			tooltip.set_tip(update_button, "Update is available, click to update.")
-			update_hbox.add(update_button)
-			changelog_button = gtk.Button()
-			changelog_button.set_label("Log")
-			changelog_button.connect("clicked", self.view_changelog)
-			changelog_button.show()
-			tooltip = gtk.Tooltips()
-			tooltip.set_tip(changelog_button, "Click here to view the ChangeLog")
-			update_hbox.add(changelog_button)
-			toptable.attach(update_hbox, 2, 3, 0, 1, xpadding=15, ypadding=0, xoptions=gtk.SHRINK, yoptions=gtk.EXPAND)
 
 		TERM_FRAME = gtk.Frame()
 		TERM_FRAME.set_size_request(1058, 390)
@@ -1936,35 +1875,6 @@ class AOSCompiler():
 		menu_remove_config.connect("activate",  self.menu_item_remove_config)
 		menu_remove_config.show()
 
-		menu_app_version = gtk.MenuItem("Choose App Version")
-		menu_bar_edit.append(menu_app_version)
-		menu_app_version.connect("activate",  self.menu_item_app_version)
-		menu_app_version.show()
-
-		separator = gtk.SeparatorMenuItem()
-		menu_bar_edit.append(separator)
-		separator.show()
-
-		CU = Parser().read("check_updates")
-		menu_toggle_check_update = gtk.CheckMenuItem()
-		menu_toggle_check_update.set_label("Check Updates (Toggle)")
-		menu_toggle_check_update.connect("toggled", self.menu_item_toggle_update)
-		menu_bar_edit.append(menu_toggle_check_update)
-		if CU:
-			menu_toggle_check_update.set_active(True)
-		else:
-			menu_toggle_check_update.set_active(False)
-
-		menu_force_update_dev = gtk.MenuItem("Update Channel (Dev)")
-		menu_bar_edit.append(menu_force_update_dev)
-		menu_force_update_dev.connect("activate",  self.update_cmdc_dev_button)
-		menu_force_update_dev.show()
-
-		menu_force_update_stable = gtk.MenuItem("Update Channel (Stable)")
-		menu_bar_edit.append(menu_force_update_stable)
-		menu_force_update_stable.connect("activate",  self.update_cmdc_stable_button)
-		menu_force_update_stable.show()
-
 		# Help menu item
 		menu_bar_help = gtk.Menu()
 		help_menu = gtk.MenuItem("Help")
@@ -2180,137 +2090,11 @@ class Gerrit():
 			pass
 		dialog.destroy()
 
-class Setup():
-	def is_cmc_setup(self):
-		os.chdir(Globals.myCONF_DIR)
-		for name in Globals.LinkList:
-			name = "%s/%s.png" % (Globals.myIMGS, name)
-			if not os.path.exists(name):
-				return False
-
-		for name in Globals.myFileList:
-			if not os.path.exists(name):
-				return False
-
-		if not os.path.exists("%s/cmdc" % Globals.myCONF_DIR):
-			return False
-
-		return True
-
-	def update_cmdc(self, URL, NAME):
-		Q = Dialogs().QDial("Update CyanogenMod Dev Center", "This will update the CMDC\n\nVersion: %s, is it ok to proceed?\n\nNote: You will have to restart the app once this is complete." % NAME)
-		if not Q:
-			return
-		Tools().UnzipFile(URL, "update.zip", Globals.myCONF_DIR)
-		if not os.path.exists(Globals.myIMGS):
-			os.mkdir(Globals.myIMGS)
-
-		os.chdir(NAME)
-		for filepath in os.listdir('images'):
-			src_file = os.path.join('images', filepath)
-			dst_file = os.path.join(Globals.myIMGS, filepath)
-			shutil.move(src_file, dst_file)
-
-		if not os.path.exists('%s/.local/share/applications' % Globals.myHOME):
-			os.mkdir('%s/.local/share/applications' % Globals.myHOME)
-
-		for line in fileinput.FileInput("desktop/cmdc.desktop",inplace=1):
-			line = line.strip()
-			if line.startswith("Exec"):
-				print "Exec=%s/cmdc" % Globals.myCONF_DIR
-			elif line.startswith("Icon"):
-				print "Icon=%s" % Globals.myICON
-			else:
-				print line
-
-		shutil.copy('desktop/cmdc.desktop', '%s/.local/share/applications/cmdc.desktop' % Globals.myHOME)
-		shutil.copy('cmdc', Globals.myCONF_DIR)
-		shutil.copy('ChangeLog', Globals.myCONF_DIR)
-		os.chmod("%s/cmdc" % Globals.myCONF_DIR, 0775)
-		os.chdir(Globals.myCONF_DIR)
-		shutil.rmtree(NAME)
-		Dialogs().CDial(gtk.MESSAGE_INFO, "Update CyanogenMod Dev Center Complete!", "Thank you for using this tool.\n\n-Lithid")
-		exit(0)
-
-	def check_update(self):
-		try:
-			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).readlines()
-			remote = float(urlfile[2].strip())
-
-			localfile = open(Globals.myChangeLogLocal, 'r').readlines()
-			local = float(localfile[2].strip())
-
-			if local < remote:
-				return True
-			return False
-		except:
-			return False
-
-	def choose_app_version(self):
-		versionList = []
-		try:
-			urlfile = urllib2.urlopen(Globals.myChangeLogUrl).readlines()
-		except:
-			Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't view log", "Please check the internet connection")
-			return
-
-		for line in urlfile:
-			try:
-				num = float(line)
-				versionList.append(num)
-			except:
-				pass
-
-		dialog = gtk.Dialog("Choose version", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-		dialog.set_size_request(260, 200)
-		dialog.set_resizable(False)
-
-		scroll = gtk.ScrolledWindow()
-		scroll.set_border_width(10)
-		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-		dialog.vbox.pack_start(scroll, True, True, 0)
-		scroll.show()
-
-		table = gtk.Table(2, 1, False)
-
-		scroll.add_with_viewport(table)
-		table.show()
-
-		device = gtk.RadioButton(None, None)
-
-		button_count = 0
-		for radio in versionList:
-
-			button_count += 1
-			button = "button%s" % (button_count)
-
-			button = gtk.RadioButton(group=device, label="%s" % (radio))
-			table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
-			button.show()
-
-		r = dialog.run()
-		if r == gtk.RESPONSE_ACCEPT:
-			active = [r for r in device.get_group() if r.get_active()][0]
-			version = active.get_label()
-			URL = "https://github.com/lithid/CMDC/archive/v%s.zip" % version
-			Setup().update_cmdc(URL, 'CMDC-%s' % version)
-		else:
-			pass
-		dialog.destroy()
-
 if __name__ == "__main__":
 	Utils().chk_config()
 
 	if not os.path.exists(Globals.myCONF):
 		Parser().write("branch", None)
-
-	S = Setup().is_cmc_setup()
-	if not S:
-		CH = Parser().read('channel')
-		if CH == "Dev":
-			Setup().update_cmdc(Globals.myUpdateUrlDev, 'CMDC-master')
-		else:
-			Setup().update_cmdc(Globals.myUpdateUrlStable, 'CMDC-Stable')
 
 	Parser().write("verbose", False)
 	if len(sys.argv) is 2:
