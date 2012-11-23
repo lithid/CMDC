@@ -139,7 +139,6 @@ class Globals():
 	# Resources
 	myMainTitle = ('CyanogenMod Dev Center')
 	myIMGS = ('%s/images') % (myDATA_DIR)
-	myICON = ('/usr/share/icons/hicolor/64x64/apps/cmdc-icon.png')
 	myTermWall = ('%s/termwall.jpg') % (myIMGS)
 	myTHEME = ('%s/theme/') % (myIMGS)
 	RunImg = ('%s/run.png') % (myIMGS)
@@ -1571,9 +1570,8 @@ class AOSCompiler():
 	# Main program
 	def main(self):
 
-		myMAIN_ICON = gtk.gdk.pixbuf_new_from_file(Globals.myICON)
 		Globals.MAIN_WIN.set_title(Globals.myMainTitle)
-		Globals.MAIN_WIN.set_icon(myMAIN_ICON)
+		Globals.MAIN_WIN.set_icon(gtk.IconTheme().load_icon('cmdc-icon', 64, 0))
 		x = Parser().read(self.KEY_WIN_X)
 		y = Parser().read(self.KEY_WIN_Y)
 		x = int(x)
