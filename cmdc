@@ -282,7 +282,7 @@ class CyanogenMod():
 		else:
 			Parser().write("manuf", m)
 			Globals.TERM.feed_child('clear\n')
-			if not os.path.exists("%s/vendor/%s":
+			if not os.path.exists("%s/vendor/%s" % (r, m)):
 				if Utils().is_adb_running() == True:
 					Globals.TERM.feed_child("cd %s/device/%s/%s/\n" % (r, m, d))
 					Globals.TERM.feed_child('clear\n')
@@ -1154,13 +1154,12 @@ class Sync():
 			Dialogs().CDial(gtk.MESSAGE_INFO, "Device is not choosen", "You need a device to continue.")
 			return False
 		r = Parser().read("repo_path")
-		url = RepoHelper().getBranchUrl("init")
 		j = Parser().read("sync_jobs")
 		if not os.path.exists(r):
 			os.mkdir(r)
 		Globals.TERM.feed_child("cd \"%s\"\n" % r)
 		if not os.path.exists("%s/.repo" % r):
-			Globals.TERM.feed_child("repo init -u %s -b %s\n" % (url, b))
+			Globals.TERM.feed_child("repo init -u %s -b %s\n" % (CyanogenMod().INIT_URL, b))
 			Dialogs().CDial(gtk.MESSAGE_INFO, "Running repo init!", "You needed to init the repo, doing that now. Please run sync again when done")
 			return
 		Globals.TERM.feed_child("repo sync -j%s\n" % j)
