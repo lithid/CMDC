@@ -273,12 +273,16 @@ class CyanogenMod():
 		m = Utils().getManu(d)
 		Globals.TERM.feed_child('clear\n')
 		if m == None:
-			Globals.TERM.feed_child('python build/tools/roomservice.py cm_%s\n' % d)
-			Dialogs().CDial(gtk.MESSAGE_INFO, "<small>Running roomservice</small>", "<small>Roomservice is running right now, you will have to run, \"<b>Compile</b>\" again after this is done downloading your kernel and device dependancies.</small>")
+			if os.path.exists("build/tools/roomservice.py"):
+				Globals.TERM.feed_child('python build/tools/roomservice.py cm_%s\n' % d)
+				Dialogs().CDial(gtk.MESSAGE_INFO, "<small>Running roomservice</small>", "<small>Roomservice is running right now, you will have to run, \"<b>Compile</b>\" again after this is done downloading your kernel and device dependancies.</small>")
+			else:
+				Dialogs().CDial(gtk.MESSAGE_INFO, "Device manufacturer not found", "Make sure device exists and please try again")
+				return
 		else:
 			Parser().write("manuf", m)
 			Globals.TERM.feed_child('clear\n')
-			if not os.path.exists("%s/vendor/%s" % (r, m)) and b is not "jellybean":
+			if not os.path.exists("%s/vendor/%s":
 				if Utils().is_adb_running() == True:
 					Globals.TERM.feed_child("cd %s/device/%s/%s/\n" % (r, m, d))
 					Globals.TERM.feed_child('clear\n')
@@ -290,23 +294,18 @@ class CyanogenMod():
 					Globals.TERM.feed_child('clear\n')
 					return
 
-			if not os.path.exists("%s/cacheran" % Globals.myCONF_DIR) and b is not "gingerbread":
+			if not os.path.exists("%s/cacheran" % Globals.myCONF_DIR) and os.path.exists("prebuilt/linux-x86/ccache/ccache"):
 				os.chdir(r)
 				file("%s/cacheran" % Globals.myCONF_DIR, 'w').close()
 				Globals.TERM.feed_child('bash prebuilt/linux-x86/ccache/ccache -M 50G\n')
 
-			if b is not "gingerbread":
+			if os.path.exists("vendor/cm/get-prebuilts"):
 				Globals.TERM.feed_child('bash vendor/cm/get-prebuilts\n')
 			else:
 				Globals.TERM.feed_child('bash vendor/cyanogen/get-rommanager\n')
 
 			Globals.TERM.feed_child('source build/envsetup.sh\n')
-
-		if d is "gingerbread":
-			Globals.TERM.feed_child("lunch cyanogen_%s-eng\n" % d)
-		else:
-			Globals.TERM.feed_child("lunch cm_%s-userdebug\n" % d)
-		Globals.TERM.feed_child("time make -j%s otapackage\n" % MAKE)
+			Globals.TERM.feed_child("brunch %s\n" % d)
 
 class FileChooser():
 	def getFolder(self):
