@@ -148,7 +148,6 @@ class Globals():
 	aoscData = ('https://raw.github.com/lithid/CMDC_Data/master')
 	aoscDataProjects = ('%s/projects') % (aoscData)
 	myTermFont = ('Monospace 9')
-	myFileList = [myICON, myTermWall, RunImg, DeviceImg]
 
 	# Strings
 	StrUserConfirm = '**** User Confirmation ****'
@@ -205,12 +204,10 @@ class Globals():
 	DEV_BTN = gtk.Button()
 	runBtn = gtk.Button()
 	branchBtn = gtk.Button()
-	aboutRomBtn = gtk.Button()
 	resetBtn = gtk.Button()
 	runLab = gtk.Label()
 	romLab = gtk.Label()
 	LinkContact = gtk.Label()
-	aboutRomLab = gtk.Label()
 	branchLab = gtk.Label()
 	toolsLab = gtk.Label()
 	clobberLab = gtk.Label()
@@ -246,26 +243,8 @@ class CyanogenMod():
 	JELLYBEAN_URL = "%s/android_vendor_cm/jellybean/jenkins-build-targets" % RAW_URL
 	ICS_URL = "%s/android_vendor_cm/ics/jenkins-build-targets" % RAW_URL
 	GINGERBREAD_URL = "%s/android_vendor_cyanogen/gingerbread/vendorsetup.sh" % RAW_URL
-	IMG_FILE = ('%s/cm/screeny-list') % (Globals.aoscDataProjects)
 
 	BranchList = ["gingerbread", "ics", "jellybean"]
-
-	AboutDesc = "This is cyanogenmod, this is subject to changes."
-
-	# CyanogenMod Images
-	Images = []
-	try:
-		filehandle = urllib.urlopen(IMG_FILE)
-	except IOError:
-		Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't read file!", "Can't read the file to setup devices!\n\nPlease check you internet connections and try again!")
-
-	for line in filehandle:
-		l = line.strip()
-		Images.append(l)
-
-	ScreenList = []
-	for i in Images:
-		ScreenList.append("%s/cm/%s" % (Globals.aoscDataProjects, i))
 
 	def getBranch(self, arg):
 		CM = CyanogenMod()
@@ -462,9 +441,14 @@ class Utils():
 
 	def choose_branch(self, obj):
 		branchList = []
-		CM = CyanogenMod()
-		for x in CM.BranchList:
-			branchList.append(x)
+		os.chdir("/tmp")
+		for x in commands.getoutput("git ls-remote --heads %s" % CyanogenMod().INIT_URL).split('\n'):
+			if x.startswith("sh:"):
+				Dialogs().CDial(gtk.MESSAGE_ERROR, "Git not found", "Can't find local git binary. \n\nPlease install it and try again.")
+				return
+			else:
+				BR = x.split("\t")[1]
+				branchList.append(BR)
 
 		def callback_branch(widget, data=None):
 			Parser().write("branch", data)
@@ -500,64 +484,13 @@ class Utils():
 		dialog.destroy()
 		Update().main()
 
-	def aboutRom(self, obj):
-		CM = CyanogenMod()
-		ImageList = CM.ScreenList
-		Desc = CM.AboutDesc
-
-		dialog = gtk.Dialog("About: Cyanogenmod", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-		dialog.set_resizable(False)
-
-		table = gtk.Table(2, 1, False)
-		table.show()
-
-		scroll = gtk.ScrolledWindow()
-		scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-		scroll.add_with_viewport(table)
-		scroll.set_size_request(425, 475)
-		scroll.show()
-		frame = gtk.Frame()
-		frame.add(scroll)
-		frame.show()
-		dialog.vbox.pack_start(frame, True, True, 0)
-
-		count = 0
-		for i in ImageList:
-			count+=1
-			image = gtk.Image()
-			image.show()
-			try:
-				imgurl = urllib2.urlopen(i)
-			except:
-				Dialogs().CDial(gtk.MESSAGE_ERROR, "Failed reading url", "Can't read\n\n%s\n\nMaybe something is wrong with the server, or the internet connection.\n\nPlease try again later." % i)
-				return
-			loader = gtk.gdk.PixbufLoader()
-			loader.write(imgurl.read())
-			loader.close()
-			image.set_from_pixbuf(loader.get_pixbuf())
-			table.attach(image, count-1, count, 0, 1, xpadding=20, ypadding=10)
-
-		label = gtk.Label()
-		label.set_markup(Desc)
-		label.show()
-		label.set_line_wrap(True)
-		DFrame = gtk.Frame()
-		DFrame.add(label)
-		DFrame.set_label("Cyanogenmod")
-		DFrame.set_border_width(10)
-		DFrame.show()
-		dialog.vbox.pack_start(DFrame, True, True, 5)
-
-		dialog.run()
-		dialog.destroy()
-
 	def Devices(self):
 		VERBOSE = Parser().read("verbose")
 
 		def callback_device(widget, data=None):
 			Parser().write("device", data)
 
-		BR = RepoHelper().getBranchUrl("raw")
+		BR = RepoHelper().getBranchUrl()
 		if BR == None:
 			return
 
@@ -600,54 +533,80 @@ class Utils():
 
 		for line in filehandle.readlines():
 			DeviceList.append(line)
-			
-		for lines in DeviceList:
 
-			if not "#" in lines:
-				line = lines.strip()
-				button_count += 1
-				button = "button%s" % (button_count)
+		if DeviceList[0].strip().startswith("PRODUCT_MAKEFILES"):
+			for lines in DeviceList:
+				if not ":=" in lines:
+					radio = lines.strip()
+					button_count += 1
+					button = "button%s" % (button_count)
 
-				try:
-					if line:
-						x = line.split(" ")
-						radio = x[1]
-					else:
-						break
-				except:
-					radio = line.strip()
-
-				if VERBOSE == True:
-					print "# Reading line: %s" % line
-					print "##########"
-					print radio
-				x = radio.split("-")
-				if VERBOSE == True:
-					print x
-				radio = x[0]
-				x = radio.split("_")
-				if VERBOSE == True:
-					print x
-				number = len(x)
-				if VERBOSE == True:
-					print number
-				if number is not 2:
-					f = x[1]
-					b = x[2]
-					radio = "%s_%s" % (f, b)
 					if VERBOSE == True:
-						print radio
-				else:
+						print "# Reading line: %s" % radio
+						print "##########"
+					x = radio.split(".mk")
+					if VERBOSE == True:
+						print x
+					radio = x[0]
+					x = radio.split("cyanogen_")
+					if VERBOSE == True:
+						print x
 					radio = x[1]
 					if VERBOSE == True:
 						print radio
-				if VERBOSE == True:
-					print "##########"
+					if VERBOSE == True:
+						print "##########"
 
-				button = gtk.RadioButton(group=device, label="%s" % (radio))
-				button.connect("toggled", callback_device, "%s" % (radio))
-				table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
-				button.show()
+					button = gtk.RadioButton(group=device, label="%s" % (radio))
+					button.connect("toggled", callback_device, "%s" % (radio))
+					table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+					button.show()
+		else:
+			for lines in DeviceList:
+				if not "#" in lines:
+					line = lines.strip()
+					button_count += 1
+					button = "button%s" % (button_count)
+					try:
+						if line:
+							x = line.split(" ")
+							radio = x[1]
+						else:
+							break
+					except:
+						radio = line.strip()
+
+					if VERBOSE == True:
+						print "# Reading line: %s" % line
+						print "##########"
+						print radio
+					x = radio.split("-")
+					if VERBOSE == True:
+						print x
+					radio = x[0]
+					x = radio.split("_")
+					if VERBOSE == True:
+						print x
+					number = len(x)
+					if VERBOSE == True:
+						print number
+					if number is not 2:
+						f = x[1]
+						b = x[2]
+						radio = "%s_%s" % (f, b)
+						if VERBOSE == True:
+							print radio
+					else:
+						radio = x[1]
+						if VERBOSE == True:
+							print radio
+					if VERBOSE == True:
+						print "##########"
+
+					button = gtk.RadioButton(group=device, label="%s" % (radio))
+					button.connect("toggled", callback_device, "%s" % (radio))
+					table.attach(button, 0, 1, button_count-1, button_count, xoptions=gtk.FILL, yoptions=gtk.SHRINK)
+					button.show()
 
 		filehandle.close()
 
@@ -1159,7 +1118,6 @@ class Update():
 		Globals.branchLab.set_markup("<small>Branch: <b>%s</b></small>" % b)
 		Globals.LinkContact.set_markup("<small>Contact</small>")
 		Globals.runLab.set_markup("<small>Run</small>")
-		Globals.aboutRomLab.set_markup("<small>About</small>")
 		Globals.toolsLab.set_markup("<small>Options</small>")
 		Globals.deviceLab.set_markup("<small>Device: <b>%s</b></small>" % d)
 		Globals.aoscTitleLab.set_markup("<span font=\"18\">%s</span>" % r)
@@ -1271,15 +1229,30 @@ class RepoHelper():
 		Dialogs().CDial(gtk.MESSAGE_INFO, "Repo not found", "Appears you are trying to run a command and you need repo.\n\nEither change your repo path, or run sync!\n\nFound:<b>%s</b>" % DIRS)
 		return
 
-	def getBranchUrl(self, arg):
-		BR = None
+	def getBranchUrl(self):
 		b = Parser().read("branch")
 		if not b:
 			Dialogs().CDial(gtk.MESSAGE_ERROR, "No branch choosen", "Please select a branch so I know which device list to pull.\n\nThanks!")
 			return
 
-		CM = CyanogenMod()
-		BR = CM.getBranch(arg)
+		BRName = b.split('/')[-1]
+		try:
+			FIN = "https://raw.github.com/CyanogenMod/android_vendor_cm/%s/jenkins-build-targets" % BRName
+			filehandle = urllib2.urlopen(FIN)
+			BR = FIN
+		except urllib2.URLError:
+				try:
+					FIN = "https://raw.github.com/CyanogenMod/android_vendor_cm/%s/vendorsetup.sh" % BRName
+					filehandle = urllib2.urlopen(FIN)
+					BR = FIN
+				except urllib2.URLError:
+					try:
+						FIN = "https://raw.github.com/CyanogenMod/android_vendor_cyanogen/%s/products/AndroidProducts.mk" % BRName
+						filehandle = urllib2.urlopen(FIN)
+						BR = FIN
+					except urllib2.URLError:
+						Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't read file", "Sorry, can't read which branch file to choose, please check your internet connection and try again.")
+						BR = None
 
 		return BR
 
@@ -1495,22 +1468,22 @@ class AOSCompiler():
 	LINK_LIST = Globals.LinkList
 	TERM_FRAME_TABLE = Globals.TermFrameTable
 
-        def About(self, widget):
+	def About(self, widget):
 		localfile = open(Globals.myChangeLogLocal, 'r').readlines()
 		localversion = float(localfile[2].strip())
 		chan = Parser().read("channel")
 		authors = ["lithid"]
-                dialog = gtk.AboutDialog()
-                dialog.set_name("CyanogenMod Dev Center")
+		dialog = gtk.AboutDialog()
+		dialog.set_name("CyanogenMod Dev Center")
 		dialog.set_program_name("CyanogenMod Dev Center")
-                dialog.set_version("v%s\n(%s)" % (localversion, chan))
+		dialog.set_version("v%s\n(%s)" % (localversion, chan))
 		dialog.set_authors(authors)
-                dialog.set_comments(Globals.about_info)
-                dialog.set_copyright("CyanogenMod Dev Center - 2012")
-                dialog.set_website_label("Donate")
-                dialog.set_website(Globals.myDONATE)
-                dialog.run()
-                dialog.destroy()
+		dialog.set_comments(Globals.about_info)
+		dialog.set_copyright("CyanogenMod Dev Center - 2012")
+		dialog.set_website_label("Donate")
+		dialog.set_website(Globals.myDONATE)
+		dialog.run()
+		dialog.destroy()
 
 	makeCombo = gtk.combo_box_new_text()
 	for i in range(1,Globals.PROCESSORS+1):
@@ -1630,15 +1603,6 @@ class AOSCompiler():
 
 		Globals.romLab.show()
 
-		aboutRomImg = gtk.Image()
-		aboutRomImg.set_from_file(Globals.DeviceImg)
-		Globals.aboutRomBtn.set_image(aboutRomImg)
-		Globals.aboutRomBtn.connect("clicked", Utils().aboutRom)
-		Globals.aboutRomBtn.set_size_request(40, 25)
-		Globals.aboutRomBtn.show()
-
-		Globals.aboutRomLab.show()
-
 		branchImg = gtk.Image()
 		branchImg.set_from_file(Globals.DeviceImg)
 		Globals.branchBtn.set_image(branchImg)
@@ -1673,16 +1637,14 @@ class AOSCompiler():
 
 		optTable = gtk.Table(2, 1, False)
 		optTable.show()
-		optTable.attach(Globals.aboutRomBtn, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.aboutRomLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.branchBtn, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.branchLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.DEV_BTN, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.deviceLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(self.syncCombo, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.syncjobsLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(self.makeCombo, 4, 5, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.makeLab, 4, 5, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.branchBtn, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.branchLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.DEV_BTN, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.deviceLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(self.syncCombo, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.syncjobsLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(self.makeCombo, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.makeLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.set_border_width(5)
 		optFrame.add(optTable)
 		Globals.buildFrameLab.show()
