@@ -3,16 +3,16 @@ CyanogenMod Dev Center
 
 CMDC GUI
 
-This program is standalone and can be ran on any linux operating system with python 2.4 support or higher.
+Make sure debhelper is installed:
 
-Make sure you have the following dependancies installed
+    sudo apt-get install debhelper
 
-    sudo apt-get install curl python python-gtk2 python-vte
+Now download the code , build and install.
 
-Just run this command to run it
+    git clone git@github.com:lithid/CMDC.git
+    dpkg-buildpackage -rfakeroot
+    sudo dpkg -i ../cmdc_0.{VERSION}_amd64.deb
 
-    python <(curl -s https://raw.github.com/lithid/CMDC/Stable/cmdc)
+Note: dpkg alone doesn't handle dependancies. If you need to install them use this command.
 
-Once you run it the first time it will create the script in
-
-    $HOME/.cmdc/cmdc
+    sudo apt-get install -f
