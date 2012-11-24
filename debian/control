@@ -8,6 +8,6 @@ Homepage: http://forum.xda-developers.com/showthread.php?t=1415661
 
 Package: cmdc
 Architecture: any
-Depends: python, python-gtk2, python-vte
+Depends: python, python-gtk2, python-vte, git-core, curl
 Description: CyanogenMod Dev Center
  Build CyanogenMod for supported devices
