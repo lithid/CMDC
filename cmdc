@@ -282,7 +282,7 @@ class CyanogenMod():
 		else:
 			Parser().write("manuf", m)
 			Globals.TERM.feed_child('clear\n')
-			if not os.path.exists("%s/vendor/%s" % (r, m)):
+			if not os.path.exists("%s/vendor/%s/%s" % (r, m, d)):
 				if Utils().is_adb_running() == True:
 					Globals.TERM.feed_child("cd %s/device/%s/%s/\n" % (r, m, d))
 					Globals.TERM.feed_child('clear\n')
