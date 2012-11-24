@@ -128,7 +128,7 @@ class Globals():
 	# Local config junk
 	myHOME = (os.environ['HOME'])
 	myGIT_CONF = ('%s/.gitconfig') % (myHOME)
-	myCONF_DIR = ('%s/.cmdc') % (myHOME)
+	myCONF_DIR = ('%s/.config/cmdc') % (myHOME)
 	myDATA_DIR = ('/usr/share/cmdc/')
 	myCONF = ('%s/cmdc.conf') % (myCONF_DIR)
 	myCONFIRM = ('%s/ask.confim') % (myCONF_DIR)
@@ -449,7 +449,7 @@ class Utils():
 			Parser().write("branch", data)
 
 		dialog = gtk.Dialog("Choose branch", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-		dialog.set_size_request(260, 200)
+		dialog.set_size_request(260, 400)
 		dialog.set_resizable(False)
 
 		scroll = gtk.ScrolledWindow()
@@ -1589,43 +1589,9 @@ class AOSCompiler():
 		tableEntry.attach(Globals.build_appLab, 0, 1, 1, 2, xoptions=gtk.EXPAND)
 		tableEntry.set_border_width(5)
 
-		# Link footer stuff
-		LinksTable = gtk.Table(2, 1, False)
-		LinksTable.show()
-
-		SpacerLinkR = gtk.Label()
-		SpacerLinkR.show()
-
-		SpacerLinkL = gtk.Label()
-		SpacerLinkL.show()
-
-		count = 0
-		for i in self.LINK_LIST:
-			count+=1
-			name = "%s/%s.png" % (Globals.myIMGS, i)
-			image = gtk.Image()
-			image.set_from_file(name)
-			image.show()
-			event = gtk.EventBox()
-			event.connect("button_press_event", Utils().press_link_button, i)
-			event.add(image)
-			event.set_size_request(26, 26)
-			event.show()
-			tooltip = gtk.Tooltips()
-			tooltip.set_tip(event, i)
-			LinksTable.attach(event, count-1, count, 0, 1,)
-
-		linksFrame = gtk.Frame()
-		linksFrame.add(LinksTable)
-		Globals.contactFrameLab.show()
-		linksFrame.set_label_widget(Globals.contactFrameLab)
-		linksFrame.set_shadow_type(gtk.SHADOW_NONE)
-		linksFrame.show()
-		Globals.LinkContact.show()
-
 		toptable.attach(tableEntry, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		toptable.attach(linksFrame, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		toptable.attach(hbox, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		#toptable.attach(linksFrame, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		toptable.attach(hbox, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		#toptable.attach(Globals.aoscTitleLab, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 
 		TERM_FRAME = gtk.Frame()
@@ -1706,14 +1672,49 @@ class AOSCompiler():
 		optTable.attach(Globals.clobberLab, 5, 6, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.attach(Globals.runBtn, 6, 7, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.attach(Globals.runLab, 6, 7, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.set_border_width(10)
+		optTable.set_border_width(15)
 		optFrame.add(optTable)
 		Globals.buildFrameLab.show()
 		optFrame.set_label_widget(Globals.buildFrameLab)
 		optFrame.set_shadow_type(gtk.SHADOW_NONE)
 		optFrame.show()
 
-		tableB.attach(optFrame, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		# Link footer stuff
+		LinksTable = gtk.Table(2, 1, False)
+		LinksTable.show()
+
+		SpacerLinkR = gtk.Label()
+		SpacerLinkR.show()
+
+		SpacerLinkL = gtk.Label()
+		SpacerLinkL.show()
+
+		count = 0
+		for i in self.LINK_LIST:
+			count+=1
+			name = "%s/%s.png" % (Globals.myIMGS, i)
+			image = gtk.Image()
+			image.set_from_file(name)
+			image.show()
+			event = gtk.EventBox()
+			event.connect("button_press_event", Utils().press_link_button, i)
+			event.add(image)
+			event.set_size_request(26, 26)
+			event.show()
+			tooltip = gtk.Tooltips()
+			tooltip.set_tip(event, i)
+			LinksTable.attach(event, count-1, count, 0, 1,)
+
+		linksFrame = gtk.Frame()
+		linksFrame.add(LinksTable)
+		Globals.contactFrameLab.show()
+		linksFrame.set_label_widget(Globals.contactFrameLab)
+		linksFrame.set_shadow_type(gtk.SHADOW_NONE)
+		linksFrame.show()
+		Globals.LinkContact.show()
+
+		tableB.attach(optFrame, 0, 1, 0, 1, xpadding=5)
+		tableB.attach(linksFrame, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 
 		# File menu item
 		menu_bar_file = gtk.Menu()
