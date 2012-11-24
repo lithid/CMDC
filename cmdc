@@ -1255,6 +1255,9 @@ class RepoHelper():
 		return BR
 
 class InstallPackages():
+	Ubuntu = "Ubuntu"
+	LinuxMint = "LinuxMint"
+	ElemOS = "\"elementary OS\""
 	def repo(self):
 		q = Dialogs().QDial("Install repo script", "Are you sure you want to install the repo script?\n\nThis will ask for root!")
 		if q == True:
@@ -1267,11 +1270,10 @@ class InstallPackages():
 		return
 		
 
-	def Ubuntu(self, version):
-
+	def Debian(self, distro, version):
 		L = []
-
-		if version == "12.10" or version == "14":
+		if distro == self.Ubuntu and version == "12.10" or \
+		distro == self.LinuxMint and version == "14":
 			pak = "libwxgtk2.8-dev"
 		else:
 			pak = "libwxgtk2.6-dev"
@@ -1283,25 +1285,32 @@ class InstallPackages():
 
 		check = (sys.maxsize > 2**32)
 		if check is True:
-			if version == "10.04" or version == "10":
+			if distro == self.Ubuntu and version == "10.04" or \
+			distro == self.LinuxMint and version == "10":
 				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline5-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
 				for x in P:
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-			elif version == "11.04" or version == "11":
+			elif distro == self.Ubuntu and version == "11.04" or \
+			distro == self.LinuxMint and version == "11":
 				P = ["g++-multilib" "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev", "gcc-4.3-multilib", "g++-4.3-multilib"]
 				for x in P:
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-			elif version == "12.10" or version == "12.04" or version == "11.10" or version == "14" or version == "13" or version == "14" or version == "0.2":
+			elif distro == self.Ubuntu and version == "12.10" or \
+			distro == self.Ubuntu and version == "12.04" or \
+			distro == self.Ubuntu and version == "11.10" or \
+			distro == self.LinuxMint and version == "14" or \
+			distro == self.LinuxMint and version == "13" or \
+			distro == self.LinuxMint and version == "14" or \
+			distro == self.ElemOS and version == "0.2":
 				P = ["g++-multilib", "lib32z1-dev", "lib32ncurses5-dev", "lib32readline-gplv2-dev"]
 				for x in P:
 					i = chkInstalled(x)
 					if i == False:
 						L.extend([x])
-		print len(L)
 		if len(L) == 0:
 			Dialogs().CDial(gtk.MESSAGE_INFO, "Empty package list", "You already have the packages you need installed!")
 		else:
@@ -1319,10 +1328,8 @@ class InstallPackages():
 		D = getLinux("Distro").strip()
 		V = getLinux("Version").strip()
 		N = getLinux("Name").strip()
-		print D
-		if D == "Ubuntu" or D == "LinuxMint" or D == "\"elementary OS\"":
-			V = getLinux("Version")
-			InstallPackages().Ubuntu(V)
+		if D == self.Ubuntu or D == self.LinuxMint or D == self.ElemOS:
+			InstallPackages().Debian(D, V)
 		else:
 			Dialogs().CDial(gtk.MESSAGE_WARNING, "Linux Distro", "Sorry, we couldn't detect your linux distro. File a bug report with this info:\n\n<b>Distro: </b>%s\n<b>Version: </b>%s\n<b>Name: </b>%s\n" % (D, V, N))
 
