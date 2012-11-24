@@ -35,7 +35,7 @@ class Tools():
 		for line in open('/proc/cpuinfo', 'r'):
 			if line.startswith('processor'):
 				count += 1
-		return count+1
+		return count
 
 	def UnzipFile(self, zipurl, myfile, mydir):
 		current = os.getcwd()
@@ -168,8 +168,6 @@ class Globals():
 	KeyWinX = 'win_x'
 	KeyWinY = 'win_y'
 
-	PROCESSORS = Tools().processor()
-
 	# Device lists
 	dl_version = None
 	dl_url = None
@@ -206,14 +204,12 @@ class Globals():
 	branchBtn = gtk.Button()
 	resetBtn = gtk.Button()
 	runLab = gtk.Label()
-	romLab = gtk.Label()
 	LinkContact = gtk.Label()
 	branchLab = gtk.Label()
 	toolsLab = gtk.Label()
 	clobberLab = gtk.Label()
 	deviceLab = gtk.Label()
 	syncjobsLab = gtk.Label()
-	makeLab = gtk.Label()
 	compileLab = gtk.Label()
 	syncLab = gtk.Label()
 	build_appLab = gtk.Label()
@@ -1121,7 +1117,6 @@ class Update():
 		Globals.deviceLab.set_markup("<small>Device: <b>%s</b></small>" % d)
 		Globals.aoscTitleLab.set_markup("<span font=\"18\">%s</span>" % r)
 		Globals.syncjobsLab.set_markup("<small>Sync: <b>%s</b></small>" % Parser().read("sync_jobs"))
-		Globals.makeLab.set_markup("<small>Make: <b>%s</b></small>" % Parser().read("make_jobs"))
 		Globals.compileLab.set_markup("<small>Compile</small>")
 		Globals.runFrameLab.set_markup("<small>Run options</small>")
 		Globals.toggleAdbLab.set_markup("<small>Adb log</small>")
@@ -1366,7 +1361,6 @@ class Parser():
 			getBranch = config.get(title, 'branch')
 			getRepoPath = config.get(title, 'repo_path')
 			getSyncJobs = config.get(title, 'sync_jobs')
-			getMakeJobs = config.get(title, 'make_jobs')
 			getManuf = config.get(title, 'manuf')
 			getVerbose = config.get(title, 'verbose')
 			getWinX = config.get(title, 'win_x')
@@ -1378,7 +1372,6 @@ class Parser():
 			getBranch = None
 			getRepoPath = None
 			getSyncJobs = None
-			getMakeJobs = None
 			getManuf = None
 			getVerbose = None
 			getWinX = None
@@ -1417,13 +1410,6 @@ class Parser():
 			config.set(title, 'sync_jobs', getSyncJobs)
 		else:
 			config.set(title, 'sync_jobs', "4")
-		
-		if arg == "make_jobs":
-			config.set(title, 'make_jobs', value)
-		elif getMakeJobs:
-			config.set(title, 'make_jobs', getMakeJobs)
-		else:
-			config.set(title, 'make_jobs', Globals.PROCESSORS)
 		
 		if arg == "manuf":
 			config.set(title, 'manuf', value)
@@ -1489,10 +1475,6 @@ class AOSCompiler():
 		dialog.set_website(Globals.myDONATE)
 		dialog.run()
 		dialog.destroy()
-
-	makeCombo = gtk.combo_box_new_text()
-	for i in range(1,Globals.PROCESSORS+1):
-		makeCombo.append_text(str(i))
 
 	syncCombo = gtk.combo_box_new_text()
 	for i in range(1,17):
@@ -1594,115 +1576,6 @@ class AOSCompiler():
 		toggleBashFrame.add(Globals.checkBashToggle)
 		hbox.add(toggleBashFrame)
 
-		toptable.attach(hbox, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		toptable.attach(Globals.aoscTitleLab, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-
-		TERM_FRAME = gtk.Frame()
-		TERM_FRAME.set_size_request(1058, 390)
-		TERM_FRAME.add(Globals.TERM)
-
-		self.TERM_FRAME_TABLE.attach(TERM_FRAME, 0, 1, 0, 1, xpadding=10)
-		self.TERM_FRAME_TABLE.hide()
-
-		Globals.aoscTitleLab.show()
-
-		Globals.romLab.show()
-
-		branchImg = gtk.Image()
-		branchImg.set_from_file(Globals.DeviceImg)
-		Globals.branchBtn.set_image(branchImg)
-		Globals.branchBtn.connect("clicked", Utils().choose_branch)
-		Globals.branchBtn.set_size_request(40, 25)
-		Globals.branchBtn.show()
-
-		Globals.branchLab.show()
-
-		DevImg = gtk.Image()
-		DevImg.set_from_file(Globals.DeviceImg)
-		Globals.DEV_BTN.set_image(DevImg)
-		Globals.DEV_BTN.connect("clicked", Utils().device_button)
-		Globals.DEV_BTN.set_size_request(40, 25)
-		Globals.DEV_BTN.show()
-
-		Globals.deviceLab.show()
-
-		self.syncCombo.show()
-		self.syncCombo.set_wrap_width(4)
-		self.syncCombo.set_size_request(32, 25)
-		self.syncCombo.connect("changed", Utils().sync_combo_change)
-
-		Globals.syncjobsLab.show()
-
-		self.makeCombo.show()
-		self.makeCombo.set_wrap_width(4)
-		self.makeCombo.set_size_request(32, 25)
-		self.makeCombo.connect("changed", Utils().compile_combo_change)
-
-		Globals.makeLab.show()
-
-		optTable = gtk.Table(2, 1, False)
-		optTable.show()
-		optTable.attach(Globals.branchBtn, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.branchLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.DEV_BTN, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.deviceLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(self.syncCombo, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.syncjobsLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(self.makeCombo, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.attach(Globals.makeLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		optTable.set_border_width(5)
-		optFrame.add(optTable)
-		Globals.buildFrameLab.show()
-		opthbox = gtk.HBox(False, 5)
-		opthbox.show()
-		optFrame.set_label_widget(Globals.buildFrameLab)
-		optFrame.set_size_request(900, 75)
-		optFrame.show()
-		opthbox.pack_start(optFrame, True, True, 91)
-
-		# Build Frame
-		Globals.checkCompile.set_active(False)
-		Globals.checkCompile.show()
-
-		Globals.compileLab.show()
-
-		Globals.checkSync.set_active(False)
-		Globals.checkSync.show()
-
-		Globals.syncLab.show()
-
-		Globals.checkClobber.set_active(False)
-		Globals.checkClobber.show()
-
-		Globals.clobberLab.show()
-
-		runImg = gtk.Image()
-		runImg.set_from_file(Globals.RunImg)
-		Globals.runBtn.set_image(runImg)
-		Globals.runBtn.connect("clicked", Utils().run_button)
-		Globals.runBtn.set_size_request(40, 25)
-		Globals.runBtn.show()
-
-		Globals.runLab.show()
-
-		buildTable = gtk.Table(2, 1, False)
-		buildTable.show()
-		buildTable.attach(Globals.checkCompile, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.compileLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.checkSync, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.syncLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.checkClobber, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.clobberLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.runBtn, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.attach(Globals.runLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		buildTable.set_border_width(5)
-		buildFrame = gtk.Frame()
-		buildFrame.add(buildTable)
-		buildFrame.set_shadow_type(gtk.SHADOW_NONE)
-		Globals.runFrameLab.show()
-		buildFrame.set_label_widget(Globals.runFrameLab)
-		buildFrame.show()
-
 		# Entrybox stuff
 		tableEntry = gtk.Table(1, 2, False)
 		tableEntry.show()
@@ -1715,8 +1588,6 @@ class AOSCompiler():
 		tableEntry.attach(Globals.packageEntryBox, 0, 1, 0, 1, ypadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		tableEntry.attach(Globals.build_appLab, 0, 1, 1, 2, xoptions=gtk.EXPAND)
 		tableEntry.set_border_width(5)
-
-		Globals.LinkContact.show()
 
 		# Link footer stuff
 		LinksTable = gtk.Table(2, 1, False)
@@ -1746,18 +1617,103 @@ class AOSCompiler():
 
 		linksFrame = gtk.Frame()
 		linksFrame.add(LinksTable)
-		linksFrame.set_size_request(300, 75)
 		Globals.contactFrameLab.show()
 		linksFrame.set_label_widget(Globals.contactFrameLab)
 		linksFrame.set_shadow_type(gtk.SHADOW_NONE)
 		linksFrame.show()
+		Globals.LinkContact.show()
+
+		toptable.attach(tableEntry, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		toptable.attach(linksFrame, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		toptable.attach(hbox, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		#toptable.attach(Globals.aoscTitleLab, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+
+		TERM_FRAME = gtk.Frame()
+		TERM_FRAME.set_size_request(1058, 390)
+		TERM_FRAME.add(Globals.TERM)
+
+		self.TERM_FRAME_TABLE.attach(TERM_FRAME, 0, 1, 0, 1, xpadding=10)
+		self.TERM_FRAME_TABLE.hide()
+
+		Globals.aoscTitleLab.show()
 
 		# Main button table
 		tableB.show()
 
-		tableB.attach(buildFrame, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		tableB.attach(tableEntry, 1, 2, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
-		tableB.attach(linksFrame, 2, 3, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		# OptFrame
+		branchImg = gtk.Image()
+		branchImg.set_from_file(Globals.DeviceImg)
+		Globals.branchBtn.set_image(branchImg)
+		Globals.branchBtn.connect("clicked", Utils().choose_branch)
+		Globals.branchBtn.set_size_request(40, 25)
+		Globals.branchBtn.show()
+
+		Globals.branchLab.show()
+
+		DevImg = gtk.Image()
+		DevImg.set_from_file(Globals.DeviceImg)
+		Globals.DEV_BTN.set_image(DevImg)
+		Globals.DEV_BTN.connect("clicked", Utils().device_button)
+		Globals.DEV_BTN.set_size_request(40, 25)
+		Globals.DEV_BTN.show()
+
+		Globals.deviceLab.show()
+
+		self.syncCombo.show()
+		self.syncCombo.set_wrap_width(4)
+		self.syncCombo.set_size_request(32, 25)
+		self.syncCombo.connect("changed", Utils().sync_combo_change)
+
+		Globals.syncjobsLab.show()
+
+		Globals.checkCompile.set_active(False)
+		Globals.checkCompile.show()
+
+		Globals.compileLab.show()
+
+		Globals.checkSync.set_active(False)
+		Globals.checkSync.show()
+
+		Globals.syncLab.show()
+
+		Globals.checkClobber.set_active(False)
+		Globals.checkClobber.show()
+
+		Globals.clobberLab.show()
+
+		runImg = gtk.Image()
+		runImg.set_from_file(Globals.RunImg)
+		Globals.runBtn.set_image(runImg)
+		Globals.runBtn.connect("clicked", Utils().run_button)
+		Globals.runBtn.set_size_request(40, 25)
+		Globals.runBtn.show()
+
+		Globals.runLab.show()
+
+		optTable = gtk.Table(2, 1, False)
+		optTable.show()
+		optTable.attach(Globals.branchBtn, 0, 1, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.branchLab, 0, 1, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.DEV_BTN, 1, 2, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.deviceLab, 1, 2, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(self.syncCombo, 2, 3, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.syncjobsLab, 2, 3, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.checkCompile, 3, 4, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.compileLab, 3, 4, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.checkSync, 4, 5, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.syncLab, 4, 5, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.checkClobber, 5, 6, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.clobberLab, 5, 6, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.runBtn, 6, 7, 0, 1, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Globals.runLab, 6, 7, 1, 2, xpadding=15, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.set_border_width(10)
+		optFrame.add(optTable)
+		Globals.buildFrameLab.show()
+		optFrame.set_label_widget(Globals.buildFrameLab)
+		optFrame.set_shadow_type(gtk.SHADOW_NONE)
+		optFrame.show()
+
+		tableB.attach(optFrame, 0, 1, 0, 1, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 
 		# File menu item
 		menu_bar_file = gtk.Menu()
@@ -1887,7 +1843,6 @@ class AOSCompiler():
 
 		MAIN_VBOX.pack_start(toptable, False, False, 0)
 		MAIN_VBOX.pack_start(self.TERM_FRAME_TABLE, True, True, 0)
-		MAIN_VBOX.pack_start(opthbox, True, True, 0)
 		MAIN_VBOX.pack_start(tableB, True, True, 0)
 
 		Update().background()
