@@ -530,9 +530,7 @@ class Utils():
 			Dialogs().CDial(gtk.MESSAGE_ERROR, "Can't read file!", "Can't read the file to setup devices!\n\nPlease check you internet connections and try again!")
 
 		button_count = 0
-		if VERBOSE == True:
-			print "##########"
-			print "# Reading URL: %s" % BR
+		Log().send("Info", "Reading URL", BR)
 		DeviceList = []
 
 		if os.path.exists(Globals.myCustDeviceFile):
@@ -553,21 +551,14 @@ class Utils():
 					button_count += 1
 					button = "button%s" % (button_count)
 
-					if VERBOSE == True:
-						print "# Reading line: %s" % radio
-						print "##########"
+					Log().send("Info", "Reading line %s" % lines, radio)
 					x = radio.split(".mk")
-					if VERBOSE == True:
-						print x
+					Log().send("Info", "mk file split", x)
 					radio = x[0]
 					x = radio.split("cyanogen_")
-					if VERBOSE == True:
-						print x
+					Log().send("Info", "spliting cyanogen_", x)
 					radio = x[1]
-					if VERBOSE == True:
-						print radio
-					if VERBOSE == True:
-						print "##########"
+					Log().send("Info", "Final", radio)
 
 					button = gtk.RadioButton(group=device, label="%s" % (radio))
 					button.connect("toggled", callback_device, "%s" % (radio))
@@ -588,32 +579,22 @@ class Utils():
 					except:
 						radio = line.strip()
 
-					if VERBOSE == True:
-						print "# Reading line: %s" % line
-						print "##########"
-						print radio
+					Log().send("Info", "Reading line %s" % line, radio)
 					x = radio.split("-")
-					if VERBOSE == True:
-						print x
+					Log().send("Info", "mk file split \"-\"", x)
 					radio = x[0]
 					x = radio.split("_")
-					if VERBOSE == True:
-						print x
+					Log().send("Info", "mk file split \"_\"", x)
 					number = len(x)
-					if VERBOSE == True:
-						print number
+					Log().send("Info", "Giving it a number", number)
 					if number is not 2:
 						f = x[1]
 						b = x[2]
 						radio = "%s_%s" % (f, b)
-						if VERBOSE == True:
-							print radio
+						Log().send("Info", "Not 2 for number", radio)
 					else:
 						radio = x[1]
-						if VERBOSE == True:
-							print radio
-					if VERBOSE == True:
-						print "##########"
+						Log().send("Info", "Is 1 for number", radio)
 
 					button = gtk.RadioButton(group=device, label="%s" % (radio))
 					button.connect("toggled", callback_device, "%s" % (radio))
@@ -629,19 +610,23 @@ class Utils():
 		Globals.checkAdbToggle.set_active(False)
 		Globals.TERM.set_background_saturation(1.0)
 		Globals.TERM.fork_command('clear')
+		Log().send("Info", "ResetTerm", "Terminal has been reset")
 
 	def choose_repo_path(self):
 		RESPONSE = FileChooser().getFolder()
 		if RESPONSE is not None:
+			Log().send("Info", "choose_repo_path", "Writing repo path of:\n%s" % RESPONSE)
 			Parser().write("repo_path", RESPONSE)
 			Update().main()
 
 	def cust_background_dialog(self):
 		IMG = FileChooser().getFile()
+		Log().send("Info", "cust_background_dialog", "Checking image by name:\n%s" IMG)
 		if IMG is not None:
 			import imghdr as im
 			test = im.what(IMG)
 			if test:
+				Log().send("Info", "cust_background_dialog", "Image is good, writing it now")
 				Parser().write("background", IMG)
 				Update().background()
 			else:
@@ -1804,6 +1789,12 @@ def main():
 	gtk.main()
 	return 0
 
+class Log():
+
+	def send(self, ty, title, message):
+		if Parser().read("verbose"):
+			print "/*** %s ***/\nTitle: %s\nMessage: %s\n" % (ty, title, message)
+
 class Gerrit():
 	def choose_user(self):
 		title = "Choose CM-Gerrit User"
@@ -1967,6 +1958,7 @@ if __name__ == "__main__":
 	if len(sys.argv) is 2:
 		if sys.argv[1] in ("-v", "--verbose"):
 			Parser().write("verbose", True)
+			Log().send("Info", "Starting verbose mode", "You have started the verbose option, expect verbosity!")
 		else:
 			print "Got %s arguments, but not \"-v\" or \"--verbose\". Leaving" % len(sys.argv)
 			exit(1)
