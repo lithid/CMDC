@@ -289,7 +289,6 @@ class CyanogenMod():
 		r = Parser().read("repo_path")
 		d = Parser().read("device")
 		b = Parser().read("branch")
-		MAKE = Parser().read("make_jobs")
 		os.chdir(r)
 		m = Utils().getManu(d)
 		Globals.TERM.feed_child('clear\n')
@@ -976,11 +975,6 @@ class Utils():
 
 		dialog.run()
 		dialog.destroy()
-
-	def compile_combo_change(self, w):
-		value = int(w.get_active_text())
-		Parser().write("make_jobs", value)
-		Update().main()
 
 	def sync_combo_change(self, w):
 		value = int(w.get_active_text())
