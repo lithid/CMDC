@@ -14,6 +14,7 @@ import time
 import webbrowser
 import subprocess
 import vte
+import re
 import urllib
 import urllib2
 import ConfigParser
@@ -100,6 +101,30 @@ class Tools():
 					return exe_file
 
 		return None
+
+	def grep(self, path, regex, which):
+		res = []
+		num = []
+		regObj = re.compile(regex)
+		for root, dirs, fnames in os.walk(path):
+			for fname in fnames:
+				if which == "File":
+					if regObj.match(fname):
+						res.append(os.path.join(root, fname))
+				else:
+					count = 0
+					try:
+						for line in open(os.path.join(root, fname), 'r'):
+							count += 1
+							if regex in line:
+								res.append(os.path.join(root, fname))
+								num.append(count)
+					except:
+							pass
+		if res and num:
+			return res, num
+		else:
+			return None
 
 class Dialogs():
 
@@ -853,7 +878,7 @@ class Utils():
 		r = Parser().read(self.KEY_REPO_PATH)
 		d = Parser().read(self.KEY_DEVICE)
 		b = Parser().read('branch')
-		MAKE = Parser().read("make_jobs")
+		MAKE = Tools().processor()
 		if not os.path.exists("%s/.repo" % r):
 			RepoHelper().run_no_repo_found()
 			return
@@ -862,7 +887,8 @@ class Utils():
 		Globals.TERM.fork_command('bash')
 		Globals.TERM.feed_child('clear\n')
 		Globals.TERM.feed_child('. build/envsetup.sh\n')
-		if b is not "gingerbread":
+		wh = Tools().grep("%s/vendor/" % r, "cm_%s-userdebug" % d, "Run")
+		if wh:
 			Globals.TERM.feed_child('lunch cm_%s-userdebug\n' % d)
 		else:
 			Globals.TERM.feed_child('lunch cm_%s-eng\n' % d)
@@ -873,31 +899,6 @@ class Utils():
 		self.ResetTerm()
 		Globals.TERM.set_background_saturation(0.3)
 		Globals.TERM.fork_command('bash')
-
-	def tools_combo_change(self, w):
-		value = int(w.get_active())
-		if value == 0:
-			self.ViewConfig()
-		elif value == 1:
-			self.choose_repo_path()
-		elif value == 2:
-			self.remove_config()
-		elif value == 3:
-			self.run_custom_device()
-		elif value == 4:
-			self.openBuildFolder()
-		elif value == 5:
-			InstallPackages().runInstall()
-		elif value == 6:
-			InstallPackages().repo()
-		elif value == 7:
-			self.change_background()
-		elif value == 8:
-			About().main()
-		elif value == 9:
-			self.remove_repo()
-		else:
-			pass
 
 	def remove_repo(self):
 		RMBUTTON = gtk.Button()
