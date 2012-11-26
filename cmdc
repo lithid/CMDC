@@ -466,7 +466,7 @@ class Utils():
 			Parser().write("branch", data)
 
 		dialog = gtk.Dialog("Choose branch", None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-		dialog.set_size_request(260, 400)
+		dialog.set_size_request(300, 400)
 		dialog.set_resizable(False)
 
 		scroll = gtk.ScrolledWindow()
