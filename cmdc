@@ -1604,7 +1604,7 @@ class AOSCompiler():
 
 		optTable = gtk.Table(2, 1, False)
 		optTable.show()
-		optTable.attach(Bhbox, 0, 1, 0, 1, xpadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
+		optTable.attach(Bhbox, 0, 1, 0, 1, xpadding=5, ypadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.attach(tableEntry, 0, 1, 1, 2, xpadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.attach(Chbox, 1, 2, 0, 1, xpadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
 		optTable.attach(Globals.runBtn, 1, 2, 1, 2, xpadding=5, xoptions=gtk.EXPAND, yoptions=gtk.EXPAND)
