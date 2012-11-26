@@ -621,7 +621,7 @@ class Utils():
 
 	def cust_background_dialog(self):
 		IMG = FileChooser().getFile()
-		Log().send("Info", "cust_background_dialog", "Checking image by name:\n%s" IMG)
+		Log().send("Info", "cust_background_dialog", "Checking image by name:\n%s" % IMG)
 		if IMG is not None:
 			import imghdr as im
 			test = im.what(IMG)
